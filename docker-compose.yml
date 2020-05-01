@@ -1,0 +1,33 @@
+version: '2.4'
+
+services:
+  alertmanager:
+    image: prom/alertmanager:v0.20.0
+    ports:
+    - "9093:9093"
+    volumes:
+    - ./alertmanager/config/alertmanager.yaml:/etc/alertmanager/alertmanager.yaml
+    - ./alertmanager/data:/alertmanager/data
+    command: ["--config.file=/etc/alertmanager/alertmanager.yaml", "--storage.path=/alertmanager/data" ]
+  
+  app:
+    build: app/.
+    depends_on:
+      - alertmanager
+    ports:
+    - "1080:1080"
+
+  db:
+    image: postgres:12.2-alpine
+    environment:
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+      POSTGRES_USER: alertapp
+      POSTGRES_DB: alertapp
+      POSTGRES_PASSWORD: alertapp
+    volumes:
+    - ./db/data:/var/lib/postgresql/data/pgdata
+
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080

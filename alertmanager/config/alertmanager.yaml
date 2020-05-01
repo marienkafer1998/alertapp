@@ -1,0 +1,8 @@
+route:
+  receiver: "default"
+
+receivers:
+  - name: default
+    webhook_configs:
+      - send_resolved: true
+        url: 'http://app:1080/receive'
