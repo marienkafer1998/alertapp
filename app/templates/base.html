@@ -1,0 +1,32 @@
+<html>
+  <head>
+    {% if title %}
+    <title>{{title}} - microblog</title>
+    {% else %}
+    <title>AlertApp</title>
+    {% endif %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  </head>
+  <body>
+      <!-- Side navigation -->
+    <div class="sidenav">
+        <div class="logo">
+            <img src="/static/img/AlertApp.png" alt="AlertApp" width="50px" height="50px"></a>
+
+        </div>
+        <div class="menu">
+            <a href="/incidents"><img src="/static/img/Incidents.png" alt="Incidents" ></a>
+        </div>
+        <div class="menu">
+            <a href="/types_incidents"><img src="/static/img/Setting.png" alt="Settings" ></a>
+        </div>
+        
+       
+
+    </div>    
+
+    <div class="main">{% block content %}{% endblock %}</div>
+    
+  </body>
+</html>

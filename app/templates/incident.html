@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Information about incident with id= {{ incident.id }}</h1>
+
+<table>
+    <tr>
+        <td>Status</td>
+        <td>{{ incident.status }}</td>
+    </tr>
+    <tr>
+        <td>Start</td>
+        <td>{{ incident.start }}</td>
+    </tr>
+    <tr>
+        <td>End</td>
+        <td>{{ incident.end }}</td>
+    </tr>
+    <tr>
+        <td>User</td>
+        <td>{{ incident.user_id }}</td>
+    </tr>
+    <tr>
+        <td>Alerts</td>
+        <td>{% for alert in incident.alerts %}
+            <b>#{{ alert.service }}</b>
+            <b>#{{ alert.severity }}</b>
+            {% endfor %}
+        </td>
+    </tr>
+</table>
+
+
+{% endblock %}

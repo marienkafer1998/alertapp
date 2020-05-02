@@ -1,0 +1,23 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+{% extends "base.html" %}
+{% block content %}
+<h2>Incidents types</h2>
+
+<h3>Types</h3>
+<table>
+    <thead>
+        <tr>
+            <td>Name</td>
+            <td>Descritpion</td>
+            <td>Labels</td>
+        </tr>
+    </thead>
+{% for type in types %}
+    <tr>
+        <td>{{ type.typeName }}</td>
+        <td>{{ type.description }}</td>
+        <td>{{ type.labels }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}

@@ -110,6 +110,17 @@ def show_incidents():
     return render_template('incidents.html', incidents=Incidents.query.all())
 
 
+@app.route('/types_incidents', methods=['GET'])
+def show_types():
+    return render_template('types.html', types=TypeOfIncident.query.all())
+
+
+@app.route('/incidents/<id>', methods=['GET'])
+def show_incident(id):
+    incident = Incidents.query.get(id)
+    return render_template('incident.html', incident=incident)
+
+
 if __name__ == '__main__':
     db.create_all()
     app.run(host='0.0.0.0', port=1080, debug=True)
