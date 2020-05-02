@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 
 <h1>Information about incident with id= {{ incident.id }}</h1>
 
@@ -8,6 +9,15 @@
         <td>Status</td>
         <td>{{ incident.status }}</td>
     </tr>
+    <tr>
+        <td>Type</td>
+        <td>{{ incident.TypeOfIncident.typeName }}</td>
+    </tr>
+    <tr>
+        <td>Description</td>
+        <td>{{ incident.TypeOfIncident.description }}</td>
+    </tr>
+
     <tr>
         <td>Start</td>
         <td>{{ incident.start }}</td>
@@ -23,8 +33,9 @@
     <tr>
         <td>Alerts</td>
         <td>{% for alert in incident.alerts %}
-            <b>#{{ alert.service }}</b>
-            <b>#{{ alert.severity }}</b>
+            [ {{ alert.service }}, {{ alert.severity }}]
+            <!-- <b>#{{ alert.service }}</b>
+            <b>#{{ alert.severity }}</b> -->
             {% endfor %}
         </td>
     </tr>

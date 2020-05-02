@@ -9,7 +9,7 @@
     <tr>
         <td>ID</td>
         <td>Status</td>
-        <!-- <td>Type</td> -->
+        <td>Type</td>
         <td>Start</td>
         <td>End</td>
         <td>Alerts</td>
@@ -19,7 +19,7 @@
     <tr>
         <td><a href="{{ url_for('show_incident', id = incident.id) }}">{{ incident.id }}</a></td>
         <td>{{ incident.status }}</td>
-        <!-- <td>{{ incident.type }}</td> -->
+        <td>{{ incident.TypeOfIncident.typeName }}</td>
         <td>{{ incident.start }}</td>
         {% if incident.end==None %}
             <td><p>Ты еще не устранил инцидент!</p></td>

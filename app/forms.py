@@ -1,7 +1,7 @@
-from flask_wtf import Form
-from wtforms import TextField, BooleanField
-from wtforms.validators import Required
+from wtforms import Form, StringField, TextAreaField
+from wtforms.validators import DataRequired
 
-class LoginForm(Form):
-    openid = TextField('openid', validators = [Required()])
-    remember_me = BooleanField('remember_me', default = False)
+class TypeForm(Form):
+    typeName = StringField('Type', validators=[DataRequired()])
+    description = TextAreaField('Description', validators=[DataRequired()])
+    labels = TextAreaField('Labels', validators=[DataRequired()])

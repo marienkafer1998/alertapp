@@ -4,9 +4,8 @@ from flask import Flask, request, jsonify, render_template, flash, redirect, url
 from flask_sqlalchemy import SQLAlchemy
 from collections import defaultdict
 from datetime import datetime
-from forms import LoginForm
 from flask_login import login_user, login_required, logout_user, UserMixin,LoginManager
-
+from forms import TypeForm
 
 # from models import Alerts, Incidents, TypeOfIncident, Users
 
@@ -99,7 +98,7 @@ def login_page():
     return render_template('login.html')
 
 @app.route('/logout', methods=['GET', 'POST'])
-@login_required
+# @login_required
 def logout():
     logout_user()
     return redirect(url_for('login_page'))
@@ -138,28 +137,53 @@ def get_data():
     return "no item"
 
 @app.route('/incidents', methods=['GET'])
-@login_required
+# @login_required
 def show_incidents():
     return render_template('incidents.html', incidents=Incidents.query.all())
 
 
 @app.route('/types_incidents', methods=['GET'])
-@login_required
+# @login_required
 def show_types():
     return render_template('types.html', types=TypeOfIncident.query.all())
 
+@app.route('/types_incidents/create', methods=['POST','GET'])
+def create_type():
+    if request.method == 'POST':
+        name = request.form['typeName']
+        description = request.form['description']
+        labels = request.form['labels']
+        type = TypeOfIncident(typeName=name, description=description, labels=labels)
+        db.session.add(type)
+        db.session.commit()
+        return redirect(url_for('show_types'))
+    form = TypeForm()
+    return render_template('create_type.html', form=form)
+
+@app.route('/types_incidents/<id>/edit', methods=['POST', 'GET'])
+def edit_type(id):
+    type = TypeOfIncident.query.get(id)
+    if request.method == 'POST':
+        form = TypeForm(formdata=request.form, obj=type)
+        form.populate_obj(type)
+        db.session.commit()
+        return redirect(url_for('show_types'))
+    form = TypeForm(obj=type)
+    return render_template('edit_type.html', type=type, form=form)
 
 @app.route('/incidents/<id>', methods=['GET'])
-@login_required
+# @login_required
 def show_incident(id):
     incident = Incidents.query.get(id)
     return render_template('incident.html', incident=incident)
+
+
+
 
 @app.after_request
 def redirect_to_signin(response):
     if response.status_code == 401:
         return redirect(url_for('login_page') + '?next=' + request.url)
-
     return response
 if __name__ == '__main__':
     db.create_all()
