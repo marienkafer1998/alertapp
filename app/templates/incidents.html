@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Incidents</title>
+</head>
+<body>
+<h2>Incidents</h2>
+
+<h3>Incidents list</h3>
+<table><tr>
+    <td>ID</td>
+    <td>Status</td>
+    <!-- <td>Type</td> -->
+    <td>Start</td>
+    <td>End</td>
+    <td>Alerts</td>
+</tr>
+{% for incident in incidents %}
+    <tr>
+        <td>{{ incident.id }}</td>
+        <td>{{ incident.status }}</td>
+        <!-- <td>{{ incident.type }}</td> -->
+        <td>{{ incident.start }}</td>
+        {% if incident.end==None %}
+            <td><p>Ты еще не устранил инцидент!</p></td>
+        {% else %}
+            <td>{{ incident.end }}</td>
+        {% endif %}
+        <td>{% for alert in incident.alerts %}
+            <b>#{{ alert.service }}</b>
+            <b>#{{ alert.severity }}</b>
+            {% endfor %}
+        </td>
+    </tr>
+{% endfor %}
+</table>
+
+</body>
+</html>

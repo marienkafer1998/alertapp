@@ -4,6 +4,7 @@ WORKDIR /opt/app
 
 ADD . /opt/app/.
 
-RUN pip install -r requirements.txt
+RUN apk add --no-cache postgresql-dev gcc python3-dev musl-dev && \
+    pip install -r requirements.txt
 
-CMD ["python", "alertapp.py"]
+CMD ["python", "-u", "alertapp.py"]

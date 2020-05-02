@@ -10,12 +10,12 @@ services:
     - ./alertmanager/data:/alertmanager/data
     command: ["--config.file=/etc/alertmanager/alertmanager.yaml", "--storage.path=/alertmanager/data" ]
   
-  app:
-    build: app/.
-    depends_on:
-      - alertmanager
-    ports:
-    - "1080:1080"
+  # app:
+  #   build: app/.
+  #   depends_on:
+  #     - alertmanager
+  #   ports:
+  #   - "1080:1080"
 
   db:
     image: postgres:12.2-alpine
@@ -24,6 +24,8 @@ services:
       POSTGRES_USER: alertapp
       POSTGRES_DB: alertapp
       POSTGRES_PASSWORD: alertapp
+    ports: 
+      - 5432:5432
     volumes:
     - ./db/data:/var/lib/postgresql/data/pgdata
 
