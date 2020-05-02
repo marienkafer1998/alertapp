@@ -1,15 +1,21 @@
 #docker-compose up -d --build app
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, flash, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from collections import defaultdict
 from datetime import datetime
+from forms import LoginForm
+from flask_login import login_user, login_required, logout_user, UserMixin,LoginManager
+
+
 # from models import Alerts, Incidents, TypeOfIncident, Users
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://alertapp:alertapp@localhost/alertapp'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config.from_object('config')
 db = SQLAlchemy(app)
+manager = LoginManager(app)
 
 from enum import Enum
 
@@ -59,7 +65,7 @@ class Incidents(db.Model):
     #     self.status = status
 
 
-class Users(db.Model):
+class Users(db.Model, UserMixin):
 
     __tablename__ = 'Users'
 
@@ -69,7 +75,34 @@ class Users(db.Model):
     password = db.Column(db.String(260), nullable=False)
     incidents = incidents = db.relationship('Incidents', backref='Users', lazy=True)
 
+@manager.user_loader
+def load_user(user_id):
+    return Users.query.get(user_id)
 
+
+@app.route('/login', methods=['GET', 'POST'])
+def login_page():
+    login = request.form.get('login')
+    password = request.form.get('password')
+    print(login, password)
+    if login and password:
+        user = Users.query.filter_by(username=login).first()
+        print(user)
+        if user and user.password==password:
+            print('we are here')
+            login_user(user)
+            return redirect(url_for('show_incidents'))
+        else:
+            flash('Login or password is not correct')
+    else:
+        flash('Please fill login and password fields')
+    return render_template('login.html')
+
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login_page'))
 
 @app.route('/receive', methods=['POST', 'GET'])
 def get_data():
@@ -81,7 +114,6 @@ def get_data():
         print(num_types, types_incidents) 
 
         incidents = defaultdict(list)
-        # types_incidents = [(1, 'database'), (2, 'server error')]
         print(num_alert) 
         for alert in data:
             labels = alert['labels'].values()
@@ -106,21 +138,29 @@ def get_data():
     return "no item"
 
 @app.route('/incidents', methods=['GET'])
+@login_required
 def show_incidents():
     return render_template('incidents.html', incidents=Incidents.query.all())
 
 
 @app.route('/types_incidents', methods=['GET'])
+@login_required
 def show_types():
     return render_template('types.html', types=TypeOfIncident.query.all())
 
 
 @app.route('/incidents/<id>', methods=['GET'])
+@login_required
 def show_incident(id):
     incident = Incidents.query.get(id)
     return render_template('incident.html', incident=incident)
 
+@app.after_request
+def redirect_to_signin(response):
+    if response.status_code == 401:
+        return redirect(url_for('login_page') + '?next=' + request.url)
 
+    return response
 if __name__ == '__main__':
     db.create_all()
     app.run(host='0.0.0.0', port=1080, debug=True)
