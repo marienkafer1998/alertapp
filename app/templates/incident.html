@@ -4,10 +4,24 @@
 
 <h1>Information about incident with id= {{ incident.id }}</h1>
 
+<form action="{{ url_for('show_incident', id = incident.id) }}" method="POST">
 <table>
     <tr>
         <td>Status</td>
-        <td>{{ incident.status }}</td>
+            {% if incident.status=='Done' %}
+                <td>{{ incident.status }}</td>
+            {% else %}
+            
+            <td>
+            <select name="option" width="300px">
+                {% for o in option_list %}
+                    <option value="{{ o }}" SELECTED>{{ o }}</option>
+                {% endfor %}
+            </select>
+            </td>
+                
+                {% endif %}
+   
     </tr>
     <tr>
         <td>Type</td>
@@ -24,11 +38,15 @@
     </tr>
     <tr>
         <td>End</td>
-        <td>{{ incident.end }}</td>
+        {% if incident.end==None %}
+            <td><p>Ты еще не устранил инцидент!</p></td>
+        {% else %}
+            <td>{{ incident.end }}</td>
+        {% endif %}
     </tr>
     <tr>
         <td>User</td>
-        <td>{{ incident.user_id }}</td>
+        <td>{{ incident.Users.fullName }}</td>
     </tr>
     <tr>
         <td>Alerts</td>
@@ -41,5 +59,14 @@
     </tr>
 </table>
 
+
+{% if incident.status!='Done' %}
+            
+<td>
+    <button type='submit' class="btn btn-success" style="background-color:#167B91;">Save</button>
+</td>
+{% endif %}
+</form>
+    
 
 {% endblock %}

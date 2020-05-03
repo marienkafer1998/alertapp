@@ -12,20 +12,25 @@
         <td>Type</td>
         <td>Start</td>
         <td>End</td>
+        <td>User</td>
         <td>Alerts</td>
     </tr>
 </thead>
 {% for incident in incidents %}
     <tr>
-        <td><a href="{{ url_for('show_incident', id = incident.id) }}">{{ incident.id }}</a></td>
+        <td><a href="{{ url_for('show_incident', id = incident.id) }}">
+        <button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;" > 
+            {{ incident.id }}</button></a></td>
+
         <td>{{ incident.status }}</td>
         <td>{{ incident.TypeOfIncident.typeName }}</td>
         <td>{{ incident.start }}</td>
         {% if incident.end==None %}
-            <td><p>Ты еще не устранил инцидент!</p></td>
+            <td><p></p></td>
         {% else %}
             <td>{{ incident.end }}</td>
         {% endif %}
+        <td>{{ incident.Users.fullName }}</td>
         <td>{% for alert in incident.alerts %}
             <b>#{{ alert.service }}</b>
             <b>#{{ alert.severity }}</b>

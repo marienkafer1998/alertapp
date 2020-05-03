@@ -1,9 +1,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 {% extends "base.html" %}
 {% block content %}
-<h2>Incidents types</h2>
-
-<h3>Types</h3>
+<h2>Incidents types
+<a href="{{ url_for('create_type') }}" method='GET'><button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;" >+</button></a>
+</h2>
+<h3>Active types</h3>
 <table>
     <thead>
         <tr>
@@ -13,13 +14,46 @@
             <td></td>
         </tr>
     </thead>
-{% for type in types %}
+{% for type in active %}
     <tr>
         <td>{{ type.typeName }}</td>
         <td>{{ type.description }}</td>
         <td>{{ type.labels }}</td>
+        <td>
+            <a href="{{ url_for('edit_type', id = type.id) }}" method='GET'>
+                <button type="button" class="btn btn-success" style="background-color:#167B91;" >Edit
+                </button>
+            </a>
+        </td>
 
     </tr>
 {% endfor %}
 </table>
+
+<h3>Not active types</h3>
+<table>
+    <thead>
+        <tr>
+            <td>Name</td>
+            <td>Descritpion</td>
+            <td>Labels</td>
+            <td></td>
+        </tr>
+    </thead>
+{% for type in nonactive %}
+    <tr>
+        <td>{{ type.typeName }}</td>
+        <td>{{ type.description }}</td>
+        <td>{{ type.labels }}</td>
+        <td>
+            <a href="{{ url_for('edit_type', id = type.id) }}" method='GET'>
+                <button type="button" class="btn btn-success" style="background-color:#167B91;" >Edit
+                </button>
+            </a>
+        </td>
+
+    </tr>
+{% endfor %}
+</table>
+
 {% endblock %}

@@ -24,9 +24,9 @@ html {
     color:white;
 }
 
-.nav:first-child {
+/* .nav:first-child {
       padding-top:1.5rem;
-    }
+    } */
 
 
 .sidenav a {
@@ -38,22 +38,16 @@ html {
 }
 
 .main {
-    /* margin-left: 100px;  */
     margin: 100px;/* Same as the width of the sidebar */
     padding: 0px 10px;
 }
 
 img {
-    width:26px;
-    height:26px;
+    width:30px;
+    height:30px;
     position: relative;
     left:-25px;
     cursor:pointer;
-}
-
-
-.logo {
-    background: #167B91;
 }
 
 .menu {
@@ -66,7 +60,7 @@ li {
 }
 
 .nav__items {
-    padding-bottom:4rem;
+    padding-bottom:1rem;
     font-family: 'monospace';
 }
 .nav__items a {
@@ -84,11 +78,7 @@ li {
       font-weight: 100;
       font-size: 1.35em;
 }
-.nav__items a:first-child {
-    font-family: 'monospace';
-  }
 
-/* Khand */
 .nav__items a:after {
          content:'';
          width: 100%;

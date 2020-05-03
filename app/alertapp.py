@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, render_template, flash, redirect, url
 from flask_sqlalchemy import SQLAlchemy
 from collections import defaultdict
 from datetime import datetime
-from flask_login import login_user, login_required, logout_user, UserMixin,LoginManager
+from flask_login import login_user, login_required, logout_user, UserMixin,LoginManager, current_user
 from forms import TypeForm
 
 # from models import Alerts, Incidents, TypeOfIncident, Users
@@ -27,9 +27,6 @@ class Alerts(db.Model):
     severity = db.Column(db.String(64), nullable=False)
     incident_id =  db.Column(db.Integer, db.ForeignKey('Incidents.id'), nullable=False)
 
-    # def __init__(self, service, severity):
-    #     self.service = service
-    #     self.severity = severity
 
 
 class TypeOfIncident(db.Model):
@@ -40,6 +37,7 @@ class TypeOfIncident(db.Model):
     typeName = db.Column(db.String(30), unique=True, nullable=False)
     description = db.Column(db.String(300), unique=True, nullable=False)
     labels = db.Column(db.Text, nullable=False) #instead of JSON and ARRAY
+    active = db.Column(db.Boolean, nullable=False)
     incidents = db.relationship('Incidents', backref='TypeOfIncident', lazy=True)
     # schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True)
 
@@ -55,13 +53,6 @@ class Incidents(db.Model):
     user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
     alerts = db.relationship('Alerts', backref='Incidents', lazy=True)
 
-    # def __init__(self, service, severity):
-    
-    #     self.id = id
-    #     self.type_id = type_id
-    #     self.start = start
-    #     self.end = end
-    #     self.status = status
 
 
 class Users(db.Model, UserMixin):
@@ -77,7 +68,6 @@ class Users(db.Model, UserMixin):
 @manager.user_loader
 def load_user(user_id):
     return Users.query.get(user_id)
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
@@ -109,7 +99,7 @@ def get_data():
         data = request.get_json()
         num_types = db.session.query(TypeOfIncident).count()
         num_alert = len(data)
-        types_incidents = db.session.query(TypeOfIncident.id, TypeOfIncident.labels).all()
+        types_incidents = db.session.query(TypeOfIncident.id, TypeOfIncident.labels).filter(TypeOfIncident.active == True).all()
         print(num_types, types_incidents) 
 
         incidents = defaultdict(list)
@@ -145,7 +135,10 @@ def show_incidents():
 @app.route('/types_incidents', methods=['GET'])
 # @login_required
 def show_types():
-    return render_template('types.html', types=TypeOfIncident.query.all())
+    on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
+    off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
+
+    return render_template('types.html', active=on_types, nonactive=off_types)
 
 @app.route('/types_incidents/create', methods=['POST','GET'])
 def create_type():
@@ -153,7 +146,8 @@ def create_type():
         name = request.form['typeName']
         description = request.form['description']
         labels = request.form['labels']
-        type = TypeOfIncident(typeName=name, description=description, labels=labels)
+        active = request.form['active']
+        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active)
         db.session.add(type)
         db.session.commit()
         return redirect(url_for('show_types'))
@@ -171,12 +165,28 @@ def edit_type(id):
     form = TypeForm(obj=type)
     return render_template('edit_type.html', type=type, form=form)
 
-@app.route('/incidents/<id>', methods=['GET'])
+@app.route('/incidents/<id>', methods=['GET', 'POST'])
 # @login_required
 def show_incident(id):
     incident = Incidents.query.get(id)
-    return render_template('incident.html', incident=incident)
+    option_list=['Active', 'Work-in progress', 'Postponed', 'Done']
+    actual_status = incident.status
+    option_list.remove(actual_status)
+    option_list.append(actual_status)
+    if request.method == 'POST':
+        status = request.form.get('option')
+        option_list.remove(status)
+        option_list.append(status)
+        incident.status=status
+        if status=='Done':
+            end = datetime.now()
+            incident.end = end
+        if incident.user_id == None:
+            incident.user_id= current_user.id
+        db.session.commit()   
 
+        return render_template('incident.html', incident=incident, option_list=option_list)
+    return render_template('incident.html', incident=incident, option_list=option_list)
 
 
 
