@@ -16,7 +16,8 @@ app.config.from_object('config')
 db = SQLAlchemy(app)
 manager = LoginManager(app)
 
-from enum import Enum
+contact_list = 'ex@gmail.com, ex2@gmail.com'
+time = 1
 
 class Alerts(db.Model):
 
@@ -26,7 +27,6 @@ class Alerts(db.Model):
     service = db.Column(db.String(64), unique=False, nullable=False)
     severity = db.Column(db.String(64), nullable=False)
     incident_id =  db.Column(db.Integer, db.ForeignKey('Incidents.id'), nullable=False)
-
 
 
 class TypeOfIncident(db.Model):
@@ -39,7 +39,7 @@ class TypeOfIncident(db.Model):
     labels = db.Column(db.Text, nullable=False) #instead of JSON and ARRAY
     active = db.Column(db.Boolean, nullable=False)
     incidents = db.relationship('Incidents', backref='TypeOfIncident', lazy=True)
-    # schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True)
+    schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True)
 
 class Incidents(db.Model):
 
@@ -53,6 +53,34 @@ class Incidents(db.Model):
     user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
     alerts = db.relationship('Alerts', backref='Incidents', lazy=True)
 
+class ScheduleItems(db.Model):
+
+    __tablename__ = 'ScheduleItems'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type_id =  db.Column(db.Integer, db.ForeignKey('TypeOfIncident.id'), nullable=False)
+    dayOfWeek = db.Column(db.Integer) # probably doesn't work
+    channels = db.Column(db.Text, nullable=False)
+
+class Channels(db.Model):
+
+    __tablename__ = 'Channels'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
+    channel_source_type = db.Column(db.String(60), nullable=False) # probably should be in another table
+    channel_source_value = db.Column(db.String(150), nullable=False)
+
+class NotificationRules(db.Model):
+
+    __tablename__ = 'NotificationRules'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    incident_id =  db.Column(db.Integer, db.ForeignKey('Incidents.id'), nullable=False)
+    scheduleItem_id = db.Column(db.Integer, db.ForeignKey('ScheduleItems.id'), nullable=False)
+    body = db.Column(db.Text, nullable=False) #text-message for messages
+    interval = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.Boolean, nullable=False)
 
 
 class Users(db.Model, UserMixin):
@@ -63,7 +91,9 @@ class Users(db.Model, UserMixin):
     username = db.Column(db.String(60), nullable=False)
     fullName = db.Column(db.String(60), nullable=False)
     password = db.Column(db.String(260), nullable=False)
-    incidents = incidents = db.relationship('Incidents', backref='Users', lazy=True)
+    incidents = db.relationship('Incidents', backref='Users', lazy=True)
+    channels = db.relationship('Channels', backref='Users', lazy=True)
+
 
 @manager.user_loader
 def load_user(user_id):
@@ -123,12 +153,21 @@ def get_data():
                 alert_obj = Alerts(severity=labels['severity'], service=labels['service'], Incidents=incident_obj)
                 db.session.add(alert_obj)
                 db.session.commit()
+            # Создание NotificationRule для этого входящего инцидента
+            day = datetime.today().isoweekday()
+            sch = ScheduleItems.query.filter(ScheduleItems.dayOfWeek == day and ScheduleItems.type_id == incident_obj.type_id).first()
+            message = 'Incident!!!' #создать строку с описанием инцидента и ссылкой на него
+            notification = NotificationRules(incident_id = incident_obj.id, scheduleItem_id = sch.id, body = message, interval = time, status = True)
+            db.session.add(notification)
+            db.session.commit()
         return jsonify(data)
     return "no item"
 
 @app.route('/incidents', methods=['GET'])
 # @login_required
 def show_incidents():
+    day = datetime.today().isoweekday()
+    print(day)
     return render_template('incidents.html', incidents=Incidents.query.all())
 
 
@@ -137,8 +176,18 @@ def show_incidents():
 def show_types():
     on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
-
     return render_template('types.html', active=on_types, nonactive=off_types)
+
+
+
+
+@app.route('/schedule', methods=['GET'])
+# @login_required
+def show_schedule():
+    on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
+    off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
+    return render_template('schedule.html', active=on_types, nonactive=off_types)
+
 
 @app.route('/types_incidents/create', methods=['POST','GET'])
 def create_type():
@@ -147,9 +196,20 @@ def create_type():
         description = request.form['description']
         labels = request.form['labels']
         active = request.form['active']
-        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active)
+        if active=='y':
+            active=True
+        else:
+            active=False
+        
+        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active, )
         db.session.add(type)
         db.session.commit()
+
+        for day in range(1,8):
+            schItem_obj = ScheduleItems(TypeOfIncident = type, dayOfWeek=day, channels =contact_list)
+            db.session.add(schItem_obj)
+            db.session.commit()
+
         return redirect(url_for('show_types'))
     form = TypeForm()
     return render_template('create_type.html', form=form)
@@ -195,6 +255,7 @@ def redirect_to_signin(response):
     if response.status_code == 401:
         return redirect(url_for('login_page') + '?next=' + request.url)
     return response
+
 if __name__ == '__main__':
     db.create_all()
     app.run(host='0.0.0.0', port=1080, debug=True)

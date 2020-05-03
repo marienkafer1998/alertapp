@@ -1,0 +1,29 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+{% extends "base.html" %}
+{% block content %}
+
+<h3>Schedule</h3>
+<table>
+    <thead>
+        <tr>
+            <td>Type</td>
+            <td>Mon</td>
+            <td>Tue</td>
+            <td>Wed</td>
+            <td>Thu</td>
+            <td>Fri</td>
+            <td>Sat</td>
+            <td>Sun</td>
+        </tr>
+        {% for type in active %}
+    <tr>
+        <td>{{ type.typeName }}</td>
+        {% for item in type.schedule_items %}
+        <td>{{ item.dayOfWeek, item.channels }}</td>
+        {% endfor %}
+
+    </tr>
+{% endfor %}
+    </thead>
+
+{% endblock %}
