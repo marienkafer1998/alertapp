@@ -40,3 +40,7 @@ def send_message_TG(chat_id, text):
     data = {"chat_id": chat_id, "text": text}
     print('Before sending')
     post(url, data=data)
+
+def send_message_Email(email, text):
+    print('[*] Immitating sendint to ', email)
+    

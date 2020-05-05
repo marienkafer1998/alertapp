@@ -16,6 +16,9 @@
             <select name="option" width="300px">
                 {% for o in option_list %}
                     <option value="{{ o }}" SELECTED>{{ o }}</option>
+                     {% if o=='Postponed' %}
+                        <p>Choose time</p>
+                    {% endif %}  
                 {% endfor %}
             </select>
             </td>

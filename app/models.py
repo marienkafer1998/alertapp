@@ -50,7 +50,14 @@ class ScheduleItems(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type_id =  db.Column(db.Integer, db.ForeignKey('TypeOfIncident.id'), nullable=False)
     dayOfWeek = db.Column(db.Integer) # probably doesn't work
-    channels = db.Column(db.Text, nullable=True)
+    # channels = db.Column(db.Text, nullable=True)
+    channels = db.relationship('Channel', secondary=channels,
+        backref=db.backref('ScheduleItems', lazy='dynamic'))
+
+channels = db.Table('channels',
+    db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
+    db.Column('Channels_id', db.Integer, db.ForeignKey('Channels.id'))
+)
 
 class Channels(db.Model):
 

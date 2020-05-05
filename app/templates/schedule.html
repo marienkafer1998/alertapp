@@ -15,15 +15,19 @@
             <td>Sat</td>
             <td>Sun</td>
         </tr>
+    </thead>
         {% for type in active %}
     <tr>
         <td>{{ type.typeName }}</td>
-        {% for item in type.schedule_items %}
-        <td>{{ item.channels }}</td>
+        {% for item in type.schedule_items|sort(attribute='dayOfWeek') %}
+        <td>{% for channel in item.channels %}
+            {{ channel.Users.fullName }} ({{ channel.channel_source_type }})
+            {% endfor %}
+        </td>
         {% endfor %}
 
     </tr>
 {% endfor %}
-    </thead>
+ 
 
 {% endblock %}

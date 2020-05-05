@@ -59,6 +59,21 @@ class Incidents(db.Model):
     user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
     alerts = db.relationship('Alerts', backref='Incidents', lazy=True)
 
+
+class DefaultChannels(db.Model):
+
+    __tablename__ = 'DefaultChannels'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
+    channel_id =  db.Column(db.Integer, db.ForeignKey('Channels.id'), nullable=True)
+
+
+channels = db.Table('channels',
+    db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
+    db.Column('Channels_id', db.Integer, db.ForeignKey('Channels.id'))
+)
+
 class ScheduleItems(db.Model):
 
     __tablename__ = 'ScheduleItems'
@@ -66,7 +81,9 @@ class ScheduleItems(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type_id =  db.Column(db.Integer, db.ForeignKey('TypeOfIncident.id'), nullable=False)
     dayOfWeek = db.Column(db.Integer) # probably doesn't work
-    channels = db.Column(db.Text, nullable=False)
+    channels = db.relationship('Channels', secondary=channels,
+        backref=db.backref('ScheduleItems', lazy=True))
+
 
 class Channels(db.Model):
 
@@ -114,8 +131,8 @@ def login_page():
         user = Users.query.filter_by(username=login).first()
         print(user)
         if user and user.password==password:
-            print('we are here')
             login_user(user)
+            flash('Its ok')
             return redirect(url_for('show_incidents'))
         else:
             flash('Login or password is not correct')
@@ -129,10 +146,6 @@ def logout():
     logout_user()
     return redirect(url_for('login_page'))
 
-@app.route('/', methods=['GET', 'POST'])
-# @login_required
-def main():
-    return redirect(url_for('show_incidents'))
 
 def send_notification(incident, notification_rule):
     # 296246912
@@ -143,16 +156,18 @@ def send_notification(incident, notification_rule):
     body = notification_rule.body
     print(body)
     # time_interval = time_interval/2
-    for _, contact in enumerate(cycle(contacts.split())):
-        if Channels.query.filter(Channels.channel_source_value == contact).first() == None: 
-            continue
+    for _, contact in enumerate(cycle(contacts)):
+        # if Channels.query.filter(Channels.channel_source_value == contact).first() == None: 
+        #     continue
 
         print('[*] Sending to', contact)
-        url=contact
+        url=Channels.channel_source_value 
         type = Channels.query.filter(Channels.channel_source_value == url).first().channel_source_type
         print(type)
         if type=='Telegram':
             send_message_TG(url, body)
+        if type=='Email':
+            send_message_Email(url, body)
         time.sleep(10)
         # time.sleep(time_interval*60)
         incident = Incidents.query.filter(Incidents.id == incident.id).first()
@@ -214,6 +229,7 @@ def get_data():
         return jsonify(data)
     return "no item"
 
+@app.route('/', methods=['GET'])
 @app.route('/incidents', methods=['GET', 'POST'])
 # @login_required
 def show_incidents():
@@ -232,13 +248,11 @@ def show_types():
 
 
 
-
-
-
 @app.route('/schedule', methods=['GET'])
 # @login_required
 def show_schedule():
     on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
+    
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
     return render_template('schedule.html', active=on_types, nonactive=off_types)
 
@@ -250,6 +264,7 @@ def create_type():
         description = request.form['description']
         labels = request.form['labels']
         active = request.form['active']
+        print(active)
         if active=='y':
             active=True
         else:
@@ -258,12 +273,18 @@ def create_type():
         type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active)
         db.session.add(type)
         db.session.commit()
-
+        chan=[]
+        #create DefaultChannels like table with position thing
+        for default in DefaultChannels.query.all():
+            channel = Channels.query.get(default.id)
+            chan.append(channel)
         for day in range(1,8):
-            schItem_obj = ScheduleItems(TypeOfIncident = type, dayOfWeek=day, channels =contact_list)
+            schItem_obj = ScheduleItems(TypeOfIncident = type, dayOfWeek=day, channels = chan)
+            print('[*] ScheduleItems for', day, schItem_obj.channels)
             db.session.add(schItem_obj)
+            
+               
             db.session.commit()
-
         return redirect(url_for('show_types'))
     form = TypeForm()
     return render_template('create_type.html', form=form)
@@ -280,6 +301,7 @@ def edit_type(id):
         return redirect(url_for('show_types'))
     form = TypeForm(obj=type)
     return render_template('edit_type.html', type=type, form=form)
+
 
 @app.route('/incidents/<id>', methods=['GET', 'POST'])
 # @login_required
@@ -304,7 +326,7 @@ def show_incident(id):
             print('[*] Добавляю время')  
             notification = NotificationRules.query.filter(NotificationRules.incident_id == incident.id).first()
             db.session.delete(notification)
-            db.session.commit
+            db.session.commit()
             incident.end = end
         if incident.user_id == None:
             print('[*] Добавляю юзера')
@@ -315,7 +337,6 @@ def show_incident(id):
 
         return render_template('incident.html', incident=incident, option_list=option_list)
     return render_template('incident.html', incident=incident, option_list=option_list)
-
 
 
 @app.after_request
