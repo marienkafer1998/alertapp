@@ -7,6 +7,7 @@ from datetime import datetime
 from flask_login import login_user, login_required, logout_user, UserMixin, LoginManager, current_user
 from forms import TypeForm
 import time
+from sqlalchemy import distinct, select
 from itertools import cycle
 
 
@@ -238,7 +239,38 @@ def show_types():
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
     return render_template('types.html', active=on_types, nonactive=off_types)
 
+@app.route('/notification', methods=['GET', 'POST'])
+# @login_required
+def notification_settings():
+    print('[*] Show default channels')
+    default=db.session.query(defaultChannels).all()
+    option_channels=[obj[0] for obj in db.session.query(distinct(Channels.channel_source_type)).all()]
+    option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
+    main = Channels.query.all()
+    if request.method == 'POST':
+        user = request.form.get('option_user')
+        channel=request.form.get('option_channel')
+        print(user, channel)
+        user_id = Users.query.filter(Users.fullName==user).first().id
 
+        channel_id = Channels.query.filter(Channels.user_id == user_id).first().id
+        if (user_id, channel_id) not in default:
+            insert = defaultChannels.insert().values(Channel_id=channel_id, User_id=user_id)
+            db.engine.execute(insert)
+            default=db.session.query(defaultChannels).all()
+
+        return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
+
+
+    return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
+
+@app.route('/deleting/<id>', methods=['POST'])
+def delete_defchan(id):
+    print('[*] Deleting default channel', id)
+    delete = defaultChannels.delete().where(defaultChannels.c.Channel_id==id)
+    db.engine.execute(delete)
+
+    return redirect(url_for('notification_settings'))
 
 @app.route('/schedule', methods=['GET'])
 # @login_required
@@ -250,8 +282,9 @@ def show_schedule():
 
 @app.route('/test', methods=['GET'])
 def test():
-    channel = db.session.query(defaultChannels).all().User_id
-    print(channel)
+    
+    default = db.session.query(defaultChannels).all()
+    print(default)
     return "hi"
 
 @app.route('/types_incidents/create', methods=['POST','GET'])
