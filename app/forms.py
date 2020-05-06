@@ -1,4 +1,4 @@
-from wtforms import Form, StringField, TextAreaField, BooleanField
+from wtforms import Form, StringField, TextAreaField, BooleanField, IntegerField
 from wtforms.validators import DataRequired
 
 class TypeForm(Form):
@@ -6,5 +6,8 @@ class TypeForm(Form):
     description = TextAreaField('Description', validators=[DataRequired()])
     labels = TextAreaField('Labels', validators=[DataRequired()])
     active = BooleanField('Active')
+    interval = IntegerField('Time between messages (in minutes)', validators=[DataRequired()])
 
     
+class SearchForm(Form):
+    search = StringField('search', validators=[DataRequired()])

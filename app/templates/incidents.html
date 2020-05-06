@@ -41,7 +41,6 @@
         <td>Alerts</td>
     </tr>
 </thead>
-{% set incidents = incidents|selectattr('status', '==', 'Active') %}
 
 {% for incident in incidents|sort(attribute='status') %}
     <tr>

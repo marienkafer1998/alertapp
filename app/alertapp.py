@@ -21,8 +21,6 @@ app.config.from_object('config')
 db = SQLAlchemy(app)
 manager = LoginManager(app)
 
-contact_list = '296246912'
-
 
 class Alerts(db.Model):
 
@@ -40,9 +38,10 @@ class TypeOfIncident(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     typeName = db.Column(db.String(30), unique=True, nullable=False)
-    description = db.Column(db.String(300), unique=True, nullable=False)
-    labels = db.Column(db.Text, nullable=False) #instead of JSON and ARRAY
+    description = db.Column(db.String(300), nullable=False)
+    labels = db.Column(db.Text, unique=True, nullable=False) #instead of JSON and ARRAY
     active = db.Column(db.Boolean, nullable=False)
+    interval = db.Column(db.Integer, nullable=False)
     incidents = db.relationship('Incidents', backref='TypeOfIncident', lazy=True)
     schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True)
 
@@ -60,14 +59,11 @@ class Incidents(db.Model):
     alerts = db.relationship('Alerts', backref='Incidents', lazy=True)
 
 
-class DefaultChannels(db.Model):
 
-    __tablename__ = 'DefaultChannels'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
-    channel_id =  db.Column(db.Integer, db.ForeignKey('Channels.id'), nullable=True)
-
+defaultChannels = db.Table('defaultChannels',
+    db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
+    db.Column('Channel_id', db.Integer, db.ForeignKey('Channels.id'))
+)
 
 channels = db.Table('channels',
     db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
@@ -152,17 +148,13 @@ def send_notification(incident, notification_rule):
     print('[*] Внутри функции send_notification')
     # print('[*] Обращение к бд за контактами')
     contacts = ScheduleItems.query.filter(ScheduleItems.id == notification_rule.scheduleItem_id).first().channels
-    # print('[*] Контакты и айди', contacts, incident.id)
     body = notification_rule.body
+    time_interval=TypeOfIncident.query.get(incident.type_id).interval/2 
     print(body)
-    # time_interval = time_interval/2
     for _, contact in enumerate(cycle(contacts)):
-        # if Channels.query.filter(Channels.channel_source_value == contact).first() == None: 
-        #     continue
-
-        print('[*] Sending to', contact)
-        url=Channels.channel_source_value 
-        type = Channels.query.filter(Channels.channel_source_value == url).first().channel_source_type
+        url=contact.channel_source_value 
+        print('[*] Sending to', url)
+        type = contact.channel_source_type
         print(type)
         if type=='Telegram':
             send_message_TG(url, body)
@@ -256,6 +248,11 @@ def show_schedule():
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
     return render_template('schedule.html', active=on_types, nonactive=off_types)
 
+@app.route('/test', methods=['GET'])
+def test():
+    channel = db.session.query(defaultChannels).all().User_id
+    print(channel)
+    return "hi"
 
 @app.route('/types_incidents/create', methods=['POST','GET'])
 def create_type():
@@ -264,25 +261,25 @@ def create_type():
         description = request.form['description']
         labels = request.form['labels']
         active = request.form['active']
+        interval = request.form['interval']
         print(active)
         if active=='y':
             active=True
         else:
             active=False
         
-        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active)
+        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active, interval=interval)
         db.session.add(type)
         db.session.commit()
         chan=[]
         #create DefaultChannels like table with position thing
-        for default in DefaultChannels.query.all():
-            channel = Channels.query.get(default.id)
+        for default in db.session.query(defaultChannels).all():
+            channel = Channels.query.get(default.Channel_id)
             chan.append(channel)
         for day in range(1,8):
             schItem_obj = ScheduleItems(TypeOfIncident = type, dayOfWeek=day, channels = chan)
             print('[*] ScheduleItems for', day, schItem_obj.channels)
             db.session.add(schItem_obj)
-            
                
             db.session.commit()
         return redirect(url_for('show_types'))
@@ -297,7 +294,6 @@ def edit_type(id):
         form.populate_obj(type)
         
         db.session.commit()
-        db.session.flush()
         return redirect(url_for('show_types'))
     form = TypeForm(obj=type)
     return render_template('edit_type.html', type=type, form=form)
