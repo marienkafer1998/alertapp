@@ -1,0 +1,86 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+{% extends "base.html" %}
+{% block content %}
+
+{% set all=incidents|length %}
+
+{% set user_inc=incidents|selectattr('user_id', '==', user.id)|list  %}
+
+{% set all_user=user_inc|length %}
+
+
+{% set work=user_inc|selectattr('status', '==', 'Work-in progress')|list %}
+{% set work_num=work|length %}
+
+
+{% set done=user_inc|selectattr('status', '==', 'Done')|list %}
+{% set done_num=done|length %}
+
+{% set postponed=user_inc|selectattr('status', '==', 'Postponed')|list %}
+
+{% set postponed_num=postponed|list|length %}
+
+
+<div class="profile-container">
+    <div class="profile">
+        <div class="card">
+            <div class="card-body">
+              <h1 class="card-title">{{ user.fullName }}</h1>
+              {% include 'channels.html' %}
+            </div>
+        </div>   
+    </div>
+
+    <div class="profile">
+        <div class="card">
+            <div class="card-body">
+              <h1 class="card-title">Statistic</h1> 
+            </div>
+        </div>
+    </div>
+</div>
+
+
+  <div class="profile-container">
+    <div class="inc">
+        <div class="card">
+            <div class="card-body">
+                <p class="gray-title">All your incidents</p>
+              <h4 class="card-title">{{ all_user }}</h4>
+              <p>{{ (all_user/all*100)|round(1) }}%</p>
+            </div>
+          </div>
+        
+    </div>
+    <div class="inc">
+        <div class="card">
+            <div class="card-body">
+                <p class="gray-title">Your work-in progress incidents</p>
+              <h4 class="card-title">{{ work_num }}</h4>
+              <p>{{ (work_num/all_user*100)|round(1) }}%</p>    
+            </div>
+          </div>
+    </div>
+    <div class="inc">
+        <div class="card">
+            <div class="card-body">
+                <p class="gray-title">Your postponed incidents</p>
+              <h4 class="card-title">{{ postponed_num }}</h4>
+              <p>{{ (postponed_num/all_user*100)|round(1) }}%</p> 
+            </div>
+          </div>
+    </div>
+    <div class="inc">
+        <div class="card">
+            <div class="card-body">
+            <p class="gray-title">Your done incidents</p> 
+              <h4 class="card-title">{{ done_num }}</h4> 
+              <p>{{ (done_num/all_user*100)|round(1) }}%</p> 
+            </div>
+          </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+

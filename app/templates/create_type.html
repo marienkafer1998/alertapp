@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% block content %}
 <form action="{{ url_for('create_type')}}" method='POST'>
-    <table>
+    <table class="small-table">
         {% for field in form %}
         <tr>
             <td>{{ field.label() }}</td>

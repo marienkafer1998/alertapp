@@ -1,16 +1,17 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 {% extends "base.html" %}
 {% block content %}
-<h2>Incidents types
+<h1>Incidents types
 <a href="{{ url_for('create_type') }}" method='GET'><button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;" >+</button></a>
-</h2>
-<h3>Active types</h3>
+</h1>
+<h2>Active types</h2>
 <table>
     <thead>
         <tr>
             <td>Name</td>
             <td>Descritpion</td>
             <td>Labels</td>
+            <td>Time interval</td>
             <td></td>
         </tr>
     </thead>
@@ -31,7 +32,7 @@
 {% endfor %}
 </table>
 
-<h3>Not active types</h3>
+<h2>Not active types</h2>
 <table>
     <thead>
         <tr>

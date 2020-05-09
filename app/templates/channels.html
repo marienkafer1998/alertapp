@@ -1,0 +1,40 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+
+<h2>Channels</h2>
+<table class="small-table">
+    <thead>
+        <tr>
+            <td>Type</td>
+            <td>Address</td>
+            <td></td>
+        </tr>
+    </thead>
+{% for channel in user.channels %}
+    <tr>
+        <td>{{ channel.channel_source_type }}</td>
+        <td >{{ channel.channel_source_value }}</td>
+        <form action="{{ url_for('delete_user_channel', id=channel.id) }}" method="POST">
+            <td>
+                <button type="submit" class="round-button" style="background-color:#167B91;" > -
+                </button>
+            
+        </td></form>
+    </tr>
+    
+    {% endfor %}
+    <tr>
+        <form action="{{ url_for('profile_info', query='channels') }}" method="POST">
+        <td>
+            <input type="text" name="type" style="width: 100px;">
+        </td>
+        <td>
+            <input type="text" name="value" style="width: 100px;">
+        </td>
+        
+            <td>
+                <button type="submit" class="small-button" style="background-color:#167B91;" >+
+                </button>
+            
+        </td></form>
+    </tr>
+    </table>

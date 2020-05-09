@@ -1,0 +1,42 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+{% extends "base.html" %}
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+          </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('profile_info', query='incidents') }}">Incidents</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('profile_info', query='channels') }}">Channels</a>
+          </li>
+      </ul>
+    </div>
+  </nav>
+  {% set incidents = incidents|selectattr('user_id', '==', user.id) %}
+  
+  {% if query=='channels'%}
+  {% include 'channels.html' %}
+  {% elif query=='incidents'%}
+  <table>
+    <thead>
+    <tr>
+        <td>ID</td>
+        <td>Status</td>
+        <td>Type</td>
+        <td>Start</td>
+        <td>End</td>
+        <td>User</td>
+        <td>Alerts</td>
+    </tr>
+</thead>
+  {% include 'filter.html' %}
+</table>
+  {% else %}
+  Profile info {{ user.id }}
+  {% endif %}
+
+{% endblock %}

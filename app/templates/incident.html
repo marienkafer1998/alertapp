@@ -15,17 +15,30 @@
             <td>
             <select name="option" width="300px">
                 {% for o in option_list %}
+            
                     <option value="{{ o }}" SELECTED>{{ o }}</option>
-                     {% if o=='Postponed' %}
+                     {% if o == 'Postponed' %}
                         <p>Choose time</p>
                     {% endif %}  
                 {% endfor %}
             </select>
+            Postponed time
+            {% if incident.postponed_time==None %}
+            <input name="time" type="text" size="5"> days
+            {% else %}
+            <input name="time" type="text" size="5" value="{{ incident.postponed_time }}""> days {% endif %} 
             </td>
                 
                 {% endif %}
+                
    
     </tr>
+    {% if incident.status=='Postponed' %}
+    <tr>
+        <td>Postponed to</td>
+        <td>{{ moment(incident.postponed_to).format('MMMM Do YYYY, h:mm:ss a') }}</td>
+    </tr>
+            {% endif %}
     <tr>
         <td>Type</td>
         <td>{{ incident.TypeOfIncident.typeName }}</td>
@@ -37,14 +50,14 @@
 
     <tr>
         <td>Start</td>
-        <td>{{ incident.start }}</td>
+        <td>{{ moment(incident.start).format('MMMM Do YYYY, h:mm:ss a') }}</td>
     </tr>
     <tr>
         <td>End</td>
         {% if incident.end==None %}
             <td><p>Ты еще не устранил инцидент!</p></td>
         {% else %}
-            <td>{{ incident.end }}</td>
+            <td>{{ moment(incident.end).format('MMMM Do YYYY, h:mm:ss a') }}</td>
         {% endif %}
     </tr>
     <tr>
@@ -62,12 +75,15 @@
     </tr>
 </table>
 
-
+<a href="{{ url_for('show_incidents') }}" method='GET'>
+    <button type="button" class="btn btn-success" style="background-color:#167B91;" >Back
+    </button>
+</a>
 {% if incident.status!='Done' %}
             
-<td>
+
     <button type='submit' class="btn btn-success" style="background-color:#167B91;">Save</button>
-</td>
+
 {% endif %}
 </form>
     
