@@ -1,0 +1,43 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+{% extends "base.html" %}
+{% block content %}
+
+{% if query=='all' %}
+{% set incidents = incidents %}
+
+{% elif query=='work' %}
+{% set incidents = incidents|selectattr('status', '==', 'Work-in-progress') %}
+
+{% elif query=='postponed' %}
+{% set incidents = incidents|selectattr('status', '==', 'Postponed') %}
+
+{% elif query=='complete' %}
+{% set incidents = incidents|selectattr('status', '==', 'Complete') %}
+
+{% endif %}
+
+<div style="margin: 10px;">
+    <h1>
+        Incidents
+        <button type="button" class="btn btn-success" style="background-color:#167B91; font-family: Arial; margin-left: 10px;" onclick="history.back();" >Back</button>
+
+    </h1> 
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <td>ID</td>
+        <td>Status</td>
+        <td>Type</td>
+        <td>Start</td>
+        <td>End</td>
+        <td>User</td>
+        <td>Alerts</td>
+    </tr>
+</thead>
+
+{% include 'filter.html' %}
+</table>
+
+{% endblock %}

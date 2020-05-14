@@ -20,6 +20,7 @@ h2 {
     padding: 0;
     height: 60px;
     background-color: #167B91;
+    
 }
 
 .logo {
@@ -30,13 +31,13 @@ h2 {
     font-family: PostNoBillsJaffna;
 }
 
-li {
+.upnav li {
     margin: 0px;
     float: left;
 }
 
 
-li a, .dropbtn {
+.upnav li a, .dropbtn {
     font-family: Khand;
     display: inline-block;
     color: white;
@@ -53,7 +54,7 @@ li a, .dropbtn {
     background-color: #125f6e;
 }
 
-li.dropdown {
+.upnav li.dropdown {
     display: inline-block;
 }
 

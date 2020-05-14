@@ -20,10 +20,11 @@
     <tr>
         <td>{{ type.typeName }}</td>
         {% for item in type.schedule_items|sort(attribute='dayOfWeek') %}
-        <form action="{{ url_for('edit_scheduleItem', id = item.id), }}" method='POST'>
-        <td>{% for channel in item.channels %}
-            {{ channel.Users.fullName }} ({{ channel.channel_source_type }})
+        <form action="{{ url_for('edit_scheduleItem', id = item.id) }}" method='GET'>
+        <td><ul style="list-style-type: none;">{% for user in item.users %}
+           <li>{{ user.fullName }}</li>
             {% endfor %}
+        </ul>
             <button type="submit" class="round-button" style="background-color:#167B91;" > <img src="/static/img/edit-24px.svg">
             </button>
         </td>
@@ -32,6 +33,5 @@
 
     </tr>
 {% endfor %}
- 
 
 {% endblock %}

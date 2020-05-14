@@ -2,21 +2,21 @@
 {% extends "base.html" %}
 {% block content %}
 
-{% set all=incidents|length %}
-
-{% set user_inc=incidents|selectattr('user_id', '==', user.id)|list  %}
-
-{% set all_user=user_inc|length %}
 
 
-{% set work=user_inc|selectattr('status', '==', 'Work-in progress')|list %}
+
+
+{% set all_user=incidents|length %}
+
+
+{% set work=incidents|selectattr('status', '==', 'Work-in-progress')|list %}
 {% set work_num=work|length %}
 
 
-{% set done=user_inc|selectattr('status', '==', 'Done')|list %}
-{% set done_num=done|length %}
+{% set complete=incidents|selectattr('status', '==', 'Complete')|list %}
+{% set complete_num=complete|length %}
 
-{% set postponed=user_inc|selectattr('status', '==', 'Postponed')|list %}
+{% set postponed=incidents|selectattr('status', '==', 'Postponed')|list %}
 
 {% set postponed_num=postponed|list|length %}
 
@@ -40,14 +40,14 @@
     </div>
 </div>
 
-
+{% if all_user != 0 %}
   <div class="profile-container">
     <div class="inc">
         <div class="card">
             <div class="card-body">
                 <p class="gray-title">All your incidents</p>
-              <h4 class="card-title">{{ all_user }}</h4>
-              <p>{{ (all_user/all*100)|round(1) }}%</p>
+              <h4 class="card-title"><a style="color: #ffdb3d;" href="{{ url_for('profile_info', query = 'all') }}">{{ all_user }}</a></h4>
+              <p class="gray-title">{{ (all_user/all*100)|round(1) }}% of all incidents</p>
             </div>
           </div>
         
@@ -55,9 +55,9 @@
     <div class="inc">
         <div class="card">
             <div class="card-body">
-                <p class="gray-title">Your work-in progress incidents</p>
-              <h4 class="card-title">{{ work_num }}</h4>
-              <p>{{ (work_num/all_user*100)|round(1) }}%</p>    
+                <p class="gray-title">Your work-in-progress incidents</p>
+              <h4 class="card-title"><a style="color: #a366ff;" href="{{ url_for('profile_info', query = 'work') }}">{{ work_num }}</a></h4>
+              <p class="gray-title">{{ (work_num/all_user*100)|round(1) }}% of all your incidents</p>    
             </div>
           </div>
     </div>
@@ -65,22 +65,23 @@
         <div class="card">
             <div class="card-body">
                 <p class="gray-title">Your postponed incidents</p>
-              <h4 class="card-title">{{ postponed_num }}</h4>
-              <p>{{ (postponed_num/all_user*100)|round(1) }}%</p> 
+                <div>
+              <h4 class="card-title"><a style="color: rgb(18, 185, 223);" href="{{ url_for('profile_info', query = 'postponed') }}">{{ postponed_num }}</a></h4>
+              <p class="gray-title">{{ (postponed_num/all_user*100)|round(1) }}% of all your incidents</p> </div>
             </div>
           </div>
     </div>
     <div class="inc">
         <div class="card">
             <div class="card-body">
-            <p class="gray-title">Your done incidents</p> 
-              <h4 class="card-title">{{ done_num }}</h4> 
-              <p>{{ (done_num/all_user*100)|round(1) }}%</p> 
+            <p class="gray-title">Your complete incidents</p> 
+              <h4 class="card-title"><a style="color: #3dff9e;" href="{{ url_for('profile_info', query = 'complete') }}">{{ complete_num }}</a></h4> 
+              <p class="gray-title">{{ (complete_num/all_user*100)|round(1) }}% of all your incidents</p> 
             </div>
           </div>
     </div>
   </div>
-
+  {% endif %}
 {% endblock %}
 
 

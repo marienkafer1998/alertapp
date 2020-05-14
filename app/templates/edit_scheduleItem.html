@@ -1,39 +1,106 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    
+
+  
 {% extends "base.html" %}
+
 {% block content %}
+<style>#sortable {
+    margin-top: 35px;
+    width: 20%;
+    list-style-type: none; 
+    margin-left: 0;  
+  }
+  
+  #sortable li {
+    padding: 10px 0;
+    position: relative;
+    margin-bottom: 0.75em;
+    padding-left: 1em;
+    border-radius: 8px;
+    background: #f1f4f5;
+  }
+  #sortable li::hover{
+      cursor: pointer;
+  }
+      </style>
+<script>
+    $(function(){
+                  $('#sortable').sortable({
+                    update: function(event, ui) {
+                    var postData = $(this).sortable('toArray');
+                    var item_id = $("#item").value;
+                    postData.push(item_id);
+                    $.ajax({
+                    data:JSON.stringify(postData),
+                    dataType:"json",
+                    contentType:"application/json",
+                    type: 'POST',
+                    id: scheduleItem.id,
+                    url: '/schedule/order'
+              });
+            }
+        });
+                  $( "#sortable" ).disableSelection(); 
+            });
+      $(function(){
+          $( "#saveorder" ).click(function(){
+          var postData = $('#sortable').sortable('toArray');
+          var item_id= document.getElementById("item").innerHTML;
+          postData.push(item_id);
+               $.ajax({
+                 data:JSON.stringify(postData),
+                 dataType:"json",
+                contentType:"application/json",
+                 type: 'POST',
+                url: '/schedule/order'
+              });
+          });
+      });
+</script>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<div style="display: none; " id="item">{{ scheduleItem.id }}</div>
+<h1 > {{ scheduleItem.TypeOfIncident.typeName }} - {{ day }} </h1>
+<div><p>Change chain of users of type {{ scheduleItem.TypeOfIncident.typeName }} for {{ day }}</p></div>
 
-<h1>Schedule</h1>
-<table>
-    <thead>
-        <tr>
-            <td>Type</td>
-            <td>Mon</td>
-            <td>Tue</td>
-            <td>Wed</td>
-            <td>Thu</td>
-            <td>Fri</td>
-            <td>Sat</td>
-            <td>Sun</td>
-        </tr>
-    </thead>
-        {% for type in active %}
-    <tr>
-        <td>{{ type.typeName }}</td>
-        {% for item in type.schedule_items|sort(attribute='dayOfWeek') %}
-        <form action="{{ url_for('edit_scheduleItem', id = item.id), }}" method='POST'>
-        <td>{% for channel in item.channels %}
-            {{ channel.Users.fullName }} ({{ channel.channel_source_type }})
-            {% endfor %}
-            <button type="submit" class="round-button" style="background-color:#167B91;" > <img src="/static/img/edit-24px.svg">
-            </button>
-        </td>
-    </form>
-        {% endfor %}
-
-    </tr>
+<ul id="sortable">
+{% for user in users  %}
+<li id="{{ user.id }}"> 
+<div style="display: table; ">
+    <div style="display: table-cell; font-size: 1.5em; ">{{ user.fullName }}</div>
+    <div style="display: table-cell; text-align: center; padding: 0px 70px;font-size: 15px;">
+        <form action="{{ url_for('delete_user_from_chain', id_item=scheduleItem.id, id_user = user.id) }}" method="POST"><button type="submit" class="round-button" style="background-color:#167B91;" >&nbsp;—&nbsp;</button></form>
+    </div>
+</div>
+</li>
 {% endfor %}
+</ul>
 
-<p>{{ scheduleItem.channels }}</p>
- 
+<div style="margin: 50px;">
+    <form action="{{ url_for('add_user_to_chain', id_item=scheduleItem.id) }}" method="POST">
+    
+        <select name="option_user" width="300px">
+            {% for o in option_users %}
+                <option value="{{ o }}" SELECTED>{{ o }}</option>  
+            {% endfor %}
+        </select>
+    
+            <button type="submit" class="btn btn-success" style="background-color:#167B91;" >Add new
+            </button>
+    </form>
+    </div>
+    
+    
+
+<div style="margin: 50px;">
+    <button type="button" class="btn btn-success" style="background-color:#167B91;" onclick="history.back();" >Back
+    </button>
+    <button class="btn btn-success" style="background-color:#167B91;" id="saveorder" >Save
+    </button>
+</div>
 
 {% endblock %}
+      
+

@@ -5,6 +5,25 @@ table tr {border-bottom: 1px solid #e8e9eb;}
 table tbody tr:hover {background: #f1f4f5;}
 
 
+
+
+.edit-table {
+  margin: 20px 50px;
+  padding: 0px;
+  width: 60%;
+}
+
+.edit-table td {
+  padding: 12px 5px;
+  text-align: left;
+}
+
+.edit-table td:last-of-type{
+  text-align: right;
+  padding-left: 0px;
+}
+
+
 .btn btn-success {
     border-radius: 50%;
     color:#167B91;
@@ -74,6 +93,11 @@ h4 {
     font-family: Khand;
     font-weight: 800;
     font-size: 50px;
+}
+
+h3 {
+  font-family: Khand-light;
+  font-size: 30px;
 }
 
 input {

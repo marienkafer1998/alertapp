@@ -20,8 +20,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://alertapp:alertapp@localhost/alertapp'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+app.config['CELERY_BROKER_URL'] = 'redis://127.0.0.1:6379/0'
+app.config['CELERY_RESULT_BACKEND'] = 'redis://127.0.0.1:6379/0'
 
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
@@ -29,6 +29,7 @@ moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 manager = LoginManager(app)
+
 
 
 class Alerts(db.Model):
@@ -52,7 +53,7 @@ class TypeOfIncident(db.Model):
     active = db.Column(db.Boolean, nullable=False)
     interval = db.Column(db.Integer, nullable=False)
     incidents = db.relationship('Incidents', backref='TypeOfIncident', lazy=True)
-    schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True)
+    schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True, cascade = "all, delete, delete-orphan")
 
 
 class Incidents(db.Model):
@@ -66,18 +67,26 @@ class Incidents(db.Model):
     status = db.Column(db.String(30), nullable=False)
     postponed_to = db.Column(db.DateTime, nullable=True)
     user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
-    alerts = db.relationship('Alerts', backref='Incidents', lazy=True)
+    alerts = db.relationship('Alerts', backref='Incidents', lazy=True, cascade = "all, delete, delete-orphan")
+
+
+# defaultChannels = db.Table('defaultChannels',
+#     db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
+#     db.Column('Channel_id', db.Integer, db.ForeignKey('Channels.id'))
+# )
 
 
 
-defaultChannels = db.Table('defaultChannels',
+# channels = db.Table('channels',
+#     db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
+#     db.Column('Channels_id', db.Integer, db.ForeignKey('Channels.id')),
+#     db.Column('Position', db.Integer, autoincrement=True)
+# )
+
+users = db.Table('users',
+    db.Column('ScheduleItem_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
     db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
-    db.Column('Channel_id', db.Integer, db.ForeignKey('Channels.id'))
-)
-
-channels = db.Table('channels',
-    db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
-    db.Column('Channels_id', db.Integer, db.ForeignKey('Channels.id'))
+    db.Column('Position', db.Integer, autoincrement=True)
 )
 
 class ScheduleItems(db.Model):
@@ -86,9 +95,12 @@ class ScheduleItems(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type_id =  db.Column(db.Integer, db.ForeignKey('TypeOfIncident.id'), nullable=False)
-    dayOfWeek = db.Column(db.Integer) # probably doesn't work
-    channels = db.relationship('Channels', secondary=channels,
-        backref=db.backref('ScheduleItems', lazy=True))
+    dayOfWeek = db.Column(db.Integer)
+    # channels = db.relationship('Channels', secondary=channels,
+    #     backref=db.backref('ScheduleItems'))
+    users = db.relationship('Users', secondary=users,
+        backref=db.backref('ScheduleItems'))
+
 
 
 class Channels(db.Model):
@@ -117,12 +129,26 @@ class Users(db.Model, UserMixin):
     __tablename__ = 'Users'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(60), nullable=False)
+    username = db.Column(db.String(20), nullable=False)
     fullName = db.Column(db.String(60), nullable=False)
-    password = db.Column(db.String(260), nullable=False)
+    password = db.Column(db.String(20), nullable=False)
     incidents = db.relationship('Incidents', backref='Users', lazy=True)
-    channels = db.relationship('Channels', backref='Users', lazy=True)
+    channels = db.relationship('Channels', backref='Users', lazy=True, cascade = "all, delete, delete-orphan")
 
+
+
+@app.route('/sort', methods=['GET', 'POST'])
+def index():
+    id =1 
+    # option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
+    # week = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday' }
+
+    if request.method=='POST':
+        order = request.get_json()
+        print(order)
+        print(type(order[0]))
+
+    return render_template('index.html')
 
 @manager.user_loader
 def load_user(user_id):
@@ -130,7 +156,7 @@ def load_user(user_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    login = request.form.get('login')
+    login = request.form.get('user')
     password = request.form.get('password')
     print(login, password)
     if login and password:
@@ -139,7 +165,7 @@ def login_page():
         if user and user.password==password:
             login_user(user)
             flash('Its ok')
-            return redirect(url_for('show_incidents'))
+            return redirect(url_for('main_page'))
         else:
             flash('Login or password is not correct')
     else:
@@ -183,6 +209,7 @@ def send_notification(incident, notification_rule):
         # time.sleep(time_interval*60)
     return {"status": True}
 
+# разбить на функцию формирования инцидентов
 @app.route('/receive', methods=['POST', 'GET'])
 def get_data():
     if request.method == 'POST':
@@ -231,169 +258,25 @@ def get_data():
     return "no item"
 
 @app.route('/', methods=['GET'])
+@app.route('/incidents', methods=['GET'])
+def main_page():
+    incidents=Incidents.query.all()
+    return render_template('incidents.html', incidents=incidents)
+
+
 @app.route('/incidents/<string:filter>', methods=['GET', 'POST'])
 # @login_required
 def show_incidents(filter):
     incidents=Incidents.query.all()
+    return render_template('incidents.html', incidents=incidents, filter=filter)
 
-    return render_template('incidents.html', incidents=incidents, filter=filter) #ошибка тут!!!!
-
-
-@app.route('/types_incidents', methods=['GET'])
-# @login_required
-def show_types():
-    print('[*] Show types')
-    on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
-    off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
-    return render_template('types.html', active=on_types, nonactive=off_types)
-
-@app.route('/notification', methods=['GET', 'POST'])
-# @login_required
-def notification_settings():
-    print('[*] Show default channels')
-    default=db.session.query(defaultChannels).all()
-    option_channels=[obj[0] for obj in db.session.query(distinct(Channels.channel_source_type)).all()]
-    option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
-    main = Channels.query.all()
-    if request.method == 'POST':
-        user = request.form.get('option_user')
-        channel=request.form.get('option_channel')
-        print(user, channel)
-        user_id = Users.query.filter(Users.fullName==user).first().id
-        channel_id = Channels.query.filter(Channels.user_id == user_id, Channels.channel_source_type==channel ).first().id
-        print(user_id, channel_id)
-        print(default)
-        if (user_id, channel_id) not in default:
-            insert = defaultChannels.insert().values(Channel_id=channel_id, User_id=user_id)
-            db.engine.execute(insert)
-            default=db.session.query(defaultChannels).all()
-        return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
-    return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
-
-@app.route('/notification/<int:id>', methods=['POST'])
-def delete_defchan(id):
-    print('[*] Deleting default channel', id)
-    delete = defaultChannels.delete().where(defaultChannels.c.Channel_id==id)
-    db.engine.execute(delete)
-
-    return redirect(url_for('notification_settings'))
-
-@app.route('/schedule', methods=['GET'])
-# @login_required
-def show_schedule():
-    on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
-    
-    off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
-    return render_template('schedule.html', active=on_types, nonactive=off_types)
-
-@app.route('/schedule/<id>/editing', methods=['GET', 'POST'])
-# @login_required
-def edit_scheduleItem(id):
-    if request.method == 'POST':
-        scheduleItem = ScheduleItems.query.get(id)
-        return render_template('edit_scheduleItem.html', scheduleItem = ScheduleItem)
-
-
-    return redirect(url_for('show_schedule'))
-
-
-@app.route('/test', methods=['GET'])
-def test():
-    
-    default = db.session.query(defaultChannels).all()
-    print(default)
-    return "hi"
-
-@app.route('/profile', methods=['GET'])
-def profile():
-    id = 1 
-    # user = Users.query.get(current_user.id)
-    user = Users.query.get(id)
-    incidents = Incidents.query.all()
-
-    return render_template('profile.html', user = user, incidents=incidents)
-
-@app.route('/profile/<string:query>', methods=['GET','POST'])
-def profile_info(query):
-    id = 1 
-    # user = Users.query.get(current_user.id)
-    user = Users.query.get(id)
-
-    incidents = Incidents.query.filter(Incidents.user_id == user.id).all()
-    
-    if request.method == 'POST':
-        type = request.form.get('type')
-        value = request.form.get('value')
-        channel = Channels(user_id=user.id, channel_source_type=type, channel_source_value=value)
-        db.session.add(channel)
-        db.session.commit()
-        return render_template('profile.html', user = user, query = query, incidents = incidents)
-        
-    return render_template('profile.html', user = user, query = query, incidents = incidents)
-
-@app.route('/profile/channels/<id>/deleting', methods=['GET', 'POST'])
-def delete_user_channel(id):
-    query='channels'
-    print(request.method)
-    if request.method == 'POST':
-        channel = Channels.query.get(id)
-        print(channel)
-        db.session.delete(channel)
-        db.session.commit()
-    return redirect(url_for('profile_info', query=query))
-
-@app.route('/types_incidents/create', methods=['POST','GET'])
-def create_type():
-    if request.method == 'POST':
-        name = request.form['typeName']
-        description = request.form['description']
-        labels = request.form['labels']
-        active = request.form['active']
-        interval = request.form['interval']
-        print(active)
-        if active=='y':
-            active=True
-        else:
-            active=False
-        
-        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active, interval=interval)
-        db.session.add(type)
-        db.session.commit()
-        chan=[]
-        #create DefaultChannels like table with position thing
-        for default in db.session.query(defaultChannels).all():
-            channel = Channels.query.get(default.Channel_id)
-            chan.append(channel)
-        for day in range(1,8):
-            schItem_obj = ScheduleItems(TypeOfIncident = type, dayOfWeek=day, channels = chan)
-            print('[*] ScheduleItems for', day, schItem_obj.channels)
-            db.session.add(schItem_obj)
-               
-            db.session.commit()
-        return redirect(url_for('show_types'))
-    form = TypeForm()
-    return render_template('create_type.html', form=form)
-
-@app.route('/types_incidents/<id>/edit', methods=['POST', 'GET'])
-def edit_type(id):
-    type = TypeOfIncident.query.get(id)
-    if request.method == 'POST':
-        form = TypeForm(formdata=request.form, obj=type)
-        form.populate_obj(type)
-        
-        db.session.commit()
-        return redirect(url_for('show_types'))
-    form = TypeForm(obj=type)
-    return render_template('edit_type.html', type=type, form=form)
-
-
-@app.route('/incidents/<id>', methods=['GET', 'POST'])
+@app.route('/incidents/<int:id>', methods=['GET', 'POST'])
 # @login_required
 def show_incident(id):
     incident = Incidents.query.get(id)
     print('[*] Внутри конкретного инцидента')
    
-    option_list=['Active', 'Work-in progress', 'Postponed', 'Done']
+    option_list=['Active', 'Work-in-progress', 'Postponed', 'Complete']
     actual_status = incident.status
     option_list.remove(actual_status)
     option_list.append(actual_status)
@@ -405,7 +288,7 @@ def show_incident(id):
         option_list.remove(status)
         option_list.append(status)
         incident.status=status
-        if status=='Done':
+        if status=='Complete':
             end = datetime.now()
             print('[*] Добавляю время')  
             notification = NotificationRules.query.filter(NotificationRules.incident_id == incident.id).first()
@@ -430,6 +313,215 @@ def show_incident(id):
     return render_template('incident.html', incident=incident, option_list=option_list)
 
 
+@app.route('/types_incidents', methods=['GET'])
+# @login_required
+def show_types():
+    print('[*] Show types')
+    on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
+    off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
+    return render_template('types.html', active=on_types, nonactive=off_types)
+
+@app.route('/types_incidents/create', methods=['POST','GET'])
+def create_type():
+    if request.method == 'POST':
+        name = request.form['typeName']
+        description = request.form['description']
+        labels = request.form['labels']
+        active = request.form['active']
+        interval = request.form['interval']
+        print(active)
+        if active=='y':
+            active=True
+        else:
+            active=False
+        
+        type = TypeOfIncident(typeName=name, description=description, labels=labels, active=active, interval=interval)
+        db.session.add(type)
+        db.session.commit()
+        default = Users.query.filter(Users.username=='admin').first()
+        users=[default]
+        #create DefaultChannels like table with position thing
+        # for default in db.session.query(defaultChannels).all():
+        #     channel = Channels.query.get(default.Channel_id)
+        #     chan.append(channel)
+        for day in range(1,8):
+            schItem_obj = ScheduleItems(TypeOfIncident = type, dayOfWeek=day, users = users)
+            print('[*] ScheduleItems for', day, schItem_obj.users)
+            db.session.add(schItem_obj)
+               
+            db.session.commit()
+        return redirect(url_for('show_types'))
+    form = TypeForm()
+    return render_template('create_type.html', form=form)
+
+@app.route('/types_incidents/<id>/edit', methods=['POST', 'GET'])
+def edit_type(id):
+    type = TypeOfIncident.query.get(id)
+    if request.method == 'POST':
+        form = TypeForm(formdata=request.form, obj=type)
+        form.populate_obj(type)
+        
+        db.session.commit()
+        return redirect(url_for('show_types'))
+    form = TypeForm(obj=type)
+    return render_template('edit_type.html', type=type, form=form)
+
+
+
+# @app.route('/notification', methods=['GET', 'POST'])
+# # @login_required
+# def notification_settings():
+#     print('[*] Show default channels')
+#     default=db.session.query(defaultChannels).all()
+#     option_channels=[obj[0] for obj in db.session.query(distinct(Channels.channel_source_type)).all()]
+#     option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
+#     main = Channels.query.all()
+#     if request.method == 'POST':
+#         user = request.form.get('option_user')
+#         channel=request.form.get('option_channel')
+#         print(user, channel)
+#         user_id = Users.query.filter(Users.fullName==user).first().id
+#         channel_id = Channels.query.filter(Channels.user_id == user_id, Channels.channel_source_type==channel ).first().id
+#         print(user_id, channel_id)
+#         print(default)
+#         if (user_id, channel_id) not in default:
+#             insert = defaultChannels.insert().values(Channel_id=channel_id, User_id=user_id)
+#             db.engine.execute(insert)
+#             default=db.session.query(defaultChannels).all()
+#         return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
+#     return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
+
+@app.route('/notification/<int:id>', methods=['POST'])
+def delete_defchan(id):
+    print('[*] Deleting default channel', id)
+    delete = defaultChannels.delete().where(defaultChannels.c.Channel_id==id)
+    db.engine.execute(delete)
+
+    return redirect(url_for('notification_settings'))
+
+@app.route('/schedule', methods=['GET'])
+# @login_required
+def show_schedule():
+    on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
+    
+    off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
+    return render_template('schedule.html', active=on_types, nonactive=off_types)
+
+@app.route('/schedule/order', methods=['POST'])
+# @login_required
+def order():
+    if request.method == 'POST':
+        order = request.get_json()
+        item_id = int(order.pop(-1))
+        ScheduleItem = ScheduleItems.query.get(item_id)
+        for position in range(1, len(order)+1):
+            
+            user_id = int(order[position-1])
+            print(position, user_id)
+            stmt = users.update().\
+            where(users.c.ScheduleItem_id==item_id).where( users.c.User_id==user_id).values(Position=int(position))
+            print(stmt)
+            db.engine.execute(stmt)
+
+
+        print(type(order[0]))
+        print(order)
+
+
+@app.route('/schedule/<id>/editing', methods=['GET', 'POST'])
+# @login_required
+def edit_scheduleItem(id):
+    users_list = db.session.query(users.c.User_id).filter(users.c.ScheduleItem_id==id).all()
+    user_chain=[]
+    for _id in users_list:
+        user_chain.append(Users.query.get(_id[0]))
+    option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
+    week = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday', }
+    scheduleItem = ScheduleItems.query.get(id)
+    # print(scheduleItem.channels)        
+    return render_template('edit_scheduleItem.html', scheduleItem = scheduleItem, day = week[scheduleItem.dayOfWeek], option_users=option_users, users=user_chain)
+
+@app.route('/schedule/<id_item>/add', methods=['POST'])
+# @login_required
+def add_user_to_chain(id_item):
+    scheduleItem = ScheduleItems.query.get(id_item)
+    print('[*] Добавляем нового юзера в конкретную цепочку')
+    user = request.form.get('option_user')
+    user = Users.query.filter(Users.fullName==user).first()
+    scheduleItem.users.append(user)         
+    db.session.commit()
+    return redirect(url_for('edit_scheduleItem', id=id_item))
+
+
+
+
+@app.route('/schedule/<id_item>/delete/<id_user>', methods=['POST'])
+# @login_required
+def delete_user_from_chain(id_item, id_user):
+    print('Удаляем канал из ScheduleItem c id= ', id_item)
+    scheduleItem = ScheduleItems.query.filter(ScheduleItems.id == id_item).first()
+    user=Users.query.get(id_user)
+    scheduleItem.users.remove(user)  
+    db.session.commit()
+    return redirect(url_for('edit_scheduleItem', id=id_item))
+
+
+@app.route('/test', methods=['GET'])
+def test():
+    
+    default = db.session.query(defaultChannels).all()
+    print(default)
+    return "hi"
+
+@app.route('/profile', methods=['GET'])
+def profile():
+    id = 1 
+    # user = Users.query.get(current_user.id)
+    user = Users.query.get(id)
+    incidents = Incidents.query.filter(Incidents.user_id == user.id).all()
+    all = db.session.query(Incidents).count()
+
+    return render_template('profile.html', user = user, incidents=incidents, all=all)
+
+@app.route('/profile/<string:query>', methods=['GET','POST'])
+def profile_info(query):
+    id = 1 
+    # user = Users.query.get(current_user.id)
+    user = Users.query.get(id)
+
+    incidents = Incidents.query.filter(Incidents.user_id == user.id).all()
+    all = db.session.query(Incidents).count()
+    
+    if request.method == 'POST': # изменение каналов
+        type = request.form.get('type')
+        value = request.form.get('value')
+        channel = Channels(user_id=user.id, channel_source_type=type, channel_source_value=value)
+        db.session.add(channel)
+        db.session.commit()
+
+        return render_template('profile.html', user = user, query = query, incidents = incidents, all=all)
+    if query:
+        return render_template('user_inc.html', query = query, incidents = incidents)
+    return render_template('profile.html', user = user, query = query, incidents = incidents, all=all)
+
+@app.route('/profile/channels/<id>/deleting', methods=['GET', 'POST'])
+def delete_user_channel(id):
+    query='channels'
+    print(request.method)
+    if request.method == 'POST':
+        channel = Channels.query.get(id)
+        print(channel)
+        delete = defaultChannels.delete().where(defaultChannels.c.Channel_id==id)
+        db.engine.execute(delete)
+
+        db.session.delete(channel)
+
+        db.session.commit()
+    return redirect(url_for('profile_info', query=query))
+
+
+
+
 @app.after_request
 def redirect_to_signin(response):
     if response.status_code == 401:
@@ -439,10 +531,20 @@ def redirect_to_signin(response):
 
 # @celery.task
 # def sending_notification(incident):
-    
+#     queue = incidents
+#     if incidents.status =Postponed and incident.postponed_to >= time.now():
+#         incident.status = active
+#         incident.postpoed_to = None
+#     for incident in queue.filter(incident.status=active)
+#         send_message(incident)    
 #     return result
 
 if __name__ == '__main__':
+
     db.create_all()
+    # a = '12345'
+    # b = Sortable(a)
+    # db.session.add(b)
+    # db.session.commit()
     # task = checking_incidents.delay(db.session.query(Incidents).all())
     app.run(host='0.0.0.0', port=1080, debug=True)

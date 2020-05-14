@@ -14,13 +14,13 @@
             <a class="nav-link" href="{{ url_for('show_incidents', filter = 'active') }}">Active</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'work') }}">Work-in progress</a>
+            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'work') }}">Work-in-progress</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('show_incidents', filter = 'postponed') }}">Postponed</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'done') }}">Done</a>
+            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'comeplete') }}">Complete</a>
           </li>
       </ul>
     </div>
@@ -43,11 +43,11 @@
   {% elif filter=='active' %}
   {% set incidents = incidents|selectattr('status', '==', 'Active') %}
   {% elif filter=='work' %}
-  {% set incidents = incidents|selectattr('status', '==', 'Work-in progress') %}
+  {% set incidents = incidents|selectattr('status', '==', 'Work-in-progress') %}
   {% elif filter=='postponed' %}
   {% set incidents = incidents|selectattr('status', '==', 'Postponed') %}
-  {% elif filter=='done' %}
-  {% set incidents = incidents|selectattr('status', '==', 'Done') %}
+  {% elif filter=='complete' %}
+  {% set incidents = incidents|selectattr('status', '==', 'Complete') %}
           
   {% endif %}
 
