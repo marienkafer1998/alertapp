@@ -1,6 +1,6 @@
 html {
     font-family: Khand;
-    background: #F4FAFD;
+
   }
 
 h1 {
@@ -13,13 +13,17 @@ h2 {
 
 
 .upnav {
+    position: fixed;
     width: 100%;
     top: 0;
+    left: 0;
+    right: 0;
     list-style-type: none;
     margin: 0;
     padding: 0;
     height: 60px;
     background-color: #167B91;
+    margin-bottom: 200px;
     
 }
 
@@ -86,6 +90,6 @@ h2 {
 }
 
 .main {
-    margin: 30px;
+    margin: 80px 50px;
     padding: 10px 10px;
 }

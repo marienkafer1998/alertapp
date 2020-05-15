@@ -4,8 +4,22 @@ table thead tr {font-weight: bold; border-top: 1px solid #e8e9eb; font-family: K
 table tr {border-bottom: 1px solid #e8e9eb;}
 table tbody tr:hover {background: #f1f4f5;}
 
+.order-table tr:hover {background: none;}
+.order-table{
+  border-bottom: 0px;
+  margin: 20px 50px;
+  padding: 0px;
 
+}
 
+.order-table tr{
+  border-bottom: 0px;
+
+}
+.order-table td {
+  padding: 12px 5px;
+  text-align: left;
+}
 
 .edit-table {
   margin: 20px 50px;

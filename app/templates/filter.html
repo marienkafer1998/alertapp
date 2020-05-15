@@ -1,8 +1,9 @@
 {% for incident in incidents %}
     <tr>
         <td><a href="{{ url_for('show_incident', id = incident.id) }}">
-        <button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;" > 
-            {{ incident.id }}</button></a></td>
+            <button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;">
+                {{ incident.id }}</button>
+        </a></td>
 
         <td>{{ incident.status }}</td>
         <td>{{ incident.TypeOfIncident.typeName }}</td>
@@ -16,7 +17,7 @@
         <td>{% for alert in incident.alerts %}
             <b>#{{ alert.service }}</b>
             <b>#{{ alert.severity }}</b>
-            {% endfor %}
+        {% endfor %}
         </td>
     </tr>
 {% endfor %}

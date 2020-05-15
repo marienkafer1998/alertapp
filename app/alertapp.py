@@ -70,19 +70,6 @@ class Incidents(db.Model):
     alerts = db.relationship('Alerts', backref='Incidents', lazy=True, cascade = "all, delete, delete-orphan")
 
 
-# defaultChannels = db.Table('defaultChannels',
-#     db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
-#     db.Column('Channel_id', db.Integer, db.ForeignKey('Channels.id'))
-# )
-
-
-
-# channels = db.Table('channels',
-#     db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
-#     db.Column('Channels_id', db.Integer, db.ForeignKey('Channels.id')),
-#     db.Column('Position', db.Integer, autoincrement=True)
-# )
-
 users = db.Table('users',
     db.Column('ScheduleItem_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
     db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
@@ -96,11 +83,8 @@ class ScheduleItems(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type_id =  db.Column(db.Integer, db.ForeignKey('TypeOfIncident.id'), nullable=False)
     dayOfWeek = db.Column(db.Integer)
-    # channels = db.relationship('Channels', secondary=channels,
-    #     backref=db.backref('ScheduleItems'))
     users = db.relationship('Users', secondary=users,
         backref=db.backref('ScheduleItems'))
-
 
 
 class Channels(db.Model):
@@ -156,20 +140,19 @@ def load_user(user_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    login = request.form.get('user')
-    password = request.form.get('password')
-    print(login, password)
-    if login and password:
-        user = Users.query.filter_by(username=login).first()
-        print(user)
-        if user and user.password==password:
-            login_user(user)
-            flash('Its ok')
-            return redirect(url_for('main_page'))
+    if request.method=='POST':
+        login = request.form.get('user')
+        password = request.form.get('password')
+        if login and password:
+            user = Users.query.filter_by(username=login).first()
+            if user and user.password==password:
+                login_user(user)
+                return redirect(url_for('main_page'))
+            else:
+                flash('Login or password is not correct')
         else:
-            flash('Login or password is not correct')
-    else:
-        flash('Please fill login and password fields')
+            flash('Please fill login and password fields')
+        return render_template('login.html')
     return render_template('login.html')
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -412,6 +395,7 @@ def show_schedule():
 def order():
     if request.method == 'POST':
         order = request.get_json()
+        print('[*] ORDER ',order)
         item_id = int(order.pop(-1))
         ScheduleItem = ScheduleItems.query.get(item_id)
         for position in range(1, len(order)+1):
@@ -451,8 +435,6 @@ def add_user_to_chain(id_item):
     scheduleItem.users.append(user)         
     db.session.commit()
     return redirect(url_for('edit_scheduleItem', id=id_item))
-
-
 
 
 @app.route('/schedule/<id_item>/delete/<id_user>', methods=['POST'])

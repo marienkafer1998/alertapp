@@ -2,22 +2,24 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Creating new type of incident</h1>
-<form action="{{ url_for('create_type')}}" method='POST'>
-    <table class="edit-table">
-        {% for field in form %}
-        <tr>
-            <td>{{ field.label() }}</td>
-            <td>{{ field() }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    <div style="margin-left: 50px;">
-        <button type="button" class="btn btn-success" style="background-color:#167B91;" onclick="history.back();" >Back</button>
+    <h1>Creating new type of incident</h1>
+    <form action="{{ url_for('create_type') }}" method='POST'>
+        <table class="edit-table">
+            {% for field in form %}
+                <tr>
+                    <td>{{ field.label() }}</td>
+                    <td>{{ field() }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <div style="margin-left: 50px;">
+            <button type="button" class="btn btn-success" style="background-color:#167B91;" onclick="history.back();">
+                Back
+            </button>
 
-        <button type='submit' class="btn btn-success" style="background-color:#167B91;">Create</button>
-    </div>
-    
+            <button type='submit' class="btn btn-success" style="background-color:#167B91;">Create</button>
+        </div>
 
-</form>
+
+    </form>
 {% endblock %}

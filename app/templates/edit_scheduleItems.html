@@ -1,0 +1,118 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    
+
+  
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 
+<script>
+    $(function(){
+    $("#sortable-table tbody").sortable({
+        update: function( event, ui ){
+            var _val = ui.item.find("input[name='order[]']").val();
+            var _pos = ui.position.top;
+            var _index = ui.item.index();
+            alert(_val+' : '+_pos);
+        }
+    });
+});​ -->
+<script>
+      $(function(){
+          $( "#saveorder" ).click(function(){
+            //   alert("hi");
+            //   var order = $("#sortable-table tbody").find('input').map(function(index, obj) {
+            //       var input = $(obj);
+            //       input.val(index + 1);
+            //       return input.attr('id') + '=' + (index + 1);
+            //     });
+                var order = $( "#sortable-table tbody" ).sortable( "serialize", {
+            attribute: "id"});
+                
+  
+                var item_id= document.getElementById("item").innerHTML;
+                alert(order);
+                order.push(item_id);
+                $.ajax({
+                    data:JSON.stringify(order),
+                    dataType:"json",
+                    contentType:"application/json",
+                    type: 'POST',
+                    url: '/schedule/order'
+              });
+          });
+      });
+</script>
+
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<div style="display: none; " id="item">{{ scheduleItem.id }}</div>
+<h1 > {{ scheduleItem.TypeOfIncident.typeName }} - {{ day }} </h1>
+<div><p>Change chain of users of type {{ scheduleItem.TypeOfIncident.typeName }} for {{ day }}</p></div>
+
+<table class="sortable-table">
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Channels</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+        {% for user in users  %}
+		<tr id="{{ user.id }}">
+			<td>{{ user.fullName }}</td>
+            <td> {% for channel in user.channels %}
+                {{ channel.channel_source_type }}
+                {% endfor %}</td>			
+
+                <td> <form action="{{ url_for('delete_user_from_chain', id_item=scheduleItem.id, id_user = user.id) }}" method="POST"><button type="submit" class="round-button" style="background-color:#167B91;" >—</button></form>
+                </td>
+                <td><input type="hidden" name="order[]" value="{{ user.id }}"  id="{{ user.id }}"></td>
+		</tr>
+        {% endfor %}
+	</tbody>
+</table>
+ 
+<div style="margin-left: 60px; margin-top: 40px; display: table; ">
+
+    <form action="{{ url_for('add_user_to_chain', id_item=scheduleItem.id) }}" method="POST">
+    <div style="display: table-cell;">
+        <select name="option_user" style="width:500px; height: 50px;" class="form-control">
+            {% for o in option_users %}
+                <option value="{{ o }}" SELECTED>{{ o }}</option>  
+            {% endfor %}
+        </select></div>
+        <div style="display: table-cell; ">
+            <button type="submit" class="btn btn-success" style="background-color:#167B91; margin-left: 10px;" >Add new
+            </button></div>
+    </form>
+    </div>
+    
+    
+
+<div style="margin: 40px; margin-top: 10px;">
+    <button type="button" class="btn btn-success" style="background-color:#167B91; font-size: 20px; margin-right: 20px; width: 100px;" onclick="history.back();" >Back
+    </button>
+    <button class="btn btn-success" style="background-color:#167B91; font-size: 20px; width: 100px;" id="saveorder" >Save
+    </button>
+</div>
+
+<script>
+    var fixHelper = function(e, ui) {
+        ui.children().each(function() {
+            $(this).width($(this).width());
+        });
+        return ui;
+    };	
+     
+    $('.sortable-table tbody').sortable({
+        helper: fixHelper
+    });
+    </script>
+
+
+{% endblock %}
+      

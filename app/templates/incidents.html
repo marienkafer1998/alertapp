@@ -1,58 +1,58 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 {% extends "base.html" %}
 {% block content %}
-<h1>Incidents</h1>
+    <h1>Incidents</h1>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav mr-auto">
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'all') }}">All</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'active') }}">Active</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'work') }}">Work-in-progress</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'postponed') }}">Postponed</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('show_incidents', filter = 'comeplete') }}">Complete</a>
-          </li>
-      </ul>
-    </div>
-  </nav>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('show_incidents', filter = 'all') }}">All</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('show_incidents', filter = 'active') }}">Active</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('show_incidents', filter = 'work') }}">Work-in-progress</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('show_incidents', filter = 'postponed') }}">Postponed</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('show_incidents', filter = 'comeplete') }}">Complete</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
 
     <table>
-      <thead>
-      <tr>
-          <td>ID</td>
-          <td>Status</td>
-          <td>Type</td>
-          <td>Start</td>
-          <td>End</td>
-          <td>User</td>
-          <td>Alerts</td>
-      </tr>
-  </thead>
-  {% if filter=='all' %}
-  {% set incidents = incidents|sort(attribute='status') %}
-  {% elif filter=='active' %}
-  {% set incidents = incidents|selectattr('status', '==', 'Active') %}
-  {% elif filter=='work' %}
-  {% set incidents = incidents|selectattr('status', '==', 'Work-in-progress') %}
-  {% elif filter=='postponed' %}
-  {% set incidents = incidents|selectattr('status', '==', 'Postponed') %}
-  {% elif filter=='complete' %}
-  {% set incidents = incidents|selectattr('status', '==', 'Complete') %}
-          
-  {% endif %}
+        <thead>
+        <tr>
+            <td>ID</td>
+            <td>Status</td>
+            <td>Type</td>
+            <td>Start</td>
+            <td>End</td>
+            <td>User</td>
+            <td>Alerts</td>
+        </tr>
+        </thead>
+        {% if filter=='all' %}
+            {% set incidents = incidents|sort(attribute='status') %}
+        {% elif filter=='active' %}
+            {% set incidents = incidents|selectattr('status', '==', 'Active') %}
+        {% elif filter=='work' %}
+            {% set incidents = incidents|selectattr('status', '==', 'Work-in-progress') %}
+        {% elif filter=='postponed' %}
+            {% set incidents = incidents|selectattr('status', '==', 'Postponed') %}
+        {% elif filter=='complete' %}
+            {% set incidents = incidents|selectattr('status', '==', 'Complete') %}
 
-      {% include 'filter.html' %}
+        {% endif %}
 
-  </table>
+        {% include 'filter.html' %}
+
+    </table>
 
 {% endblock %}

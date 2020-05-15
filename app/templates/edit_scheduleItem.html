@@ -1,106 +1,104 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    
 
-  
 {% extends "base.html" %}
 
 {% block content %}
-<style>#sortable {
-    margin-top: 35px;
-    width: 20%;
-    list-style-type: none; 
-    margin-left: 0;  
-  }
-  
-  #sortable li {
-    padding: 10px 0;
-    position: relative;
-    margin-bottom: 0.75em;
-    padding-left: 1em;
-    border-radius: 8px;
-    background: #f1f4f5;
-  }
-  #sortable li::hover{
-      cursor: pointer;
-  }
-      </style>
-<script>
-    $(function(){
-                  $('#sortable').sortable({
-                    update: function(event, ui) {
-                    var postData = $(this).sortable('toArray');
-                    var item_id = $("#item").value;
-                    postData.push(item_id);
-                    $.ajax({
-                    data:JSON.stringify(postData),
-                    dataType:"json",
-                    contentType:"application/json",
+
+    <script>
+        $(function () {
+            $('#saveorder').click(function () {
+                var order = $('.sortable-table tbody').sortable('toArray')
+                var item_id = document.getElementById("item").innerHTML;
+                order.push(item_id);
+                $.ajax({
+                    data: JSON.stringify(order),
+                    dataType: "json",
+                    contentType: "application/json",
                     type: 'POST',
-                    id: scheduleItem.id,
                     url: '/schedule/order'
-              });
-            }
-        });
-                  $( "#sortable" ).disableSelection(); 
+                });
             });
-      $(function(){
-          $( "#saveorder" ).click(function(){
-          var postData = $('#sortable').sortable('toArray');
-          var item_id= document.getElementById("item").innerHTML;
-          postData.push(item_id);
-               $.ajax({
-                 data:JSON.stringify(postData),
-                 dataType:"json",
-                contentType:"application/json",
-                 type: 'POST',
-                url: '/schedule/order'
-              });
-          });
-      });
-</script>
-<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<div style="display: none; " id="item">{{ scheduleItem.id }}</div>
-<h1 > {{ scheduleItem.TypeOfIncident.typeName }} - {{ day }} </h1>
-<div><p>Change chain of users of type {{ scheduleItem.TypeOfIncident.typeName }} for {{ day }}</p></div>
+        });
+    </script>
 
-<ul id="sortable">
-{% for user in users  %}
-<li id="{{ user.id }}"> 
-<div style="display: table; ">
-    <div style="display: table-cell; font-size: 1.5em; ">{{ user.fullName }}</div>
-    <div style="display: table-cell; text-align: center; padding: 0px 70px;font-size: 15px;">
-        <form action="{{ url_for('delete_user_from_chain', id_item=scheduleItem.id, id_user = user.id) }}" method="POST"><button type="submit" class="round-button" style="background-color:#167B91;" >&nbsp;—&nbsp;</button></form>
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <div style="display: none; " id="item">{{ scheduleItem.id }}</div>
+    <h1> {{ scheduleItem.TypeOfIncident.typeName }} - {{ day }} </h1>
+    <div><p>Change chain of users of type {{ scheduleItem.TypeOfIncident.typeName }} for {{ day }}</p></div>
+
+    <table class="sortable-table" style="width:70%;">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Channels</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+            <tr id="{{ user.id }}">
+                <td id="{{ user.id }}">{{ user.fullName }}</td>
+                <td> {% for channel in user.channels %}
+                    {{ channel.channel_source_type }}
+                {% endfor %}</td>
+
+                <td>
+                    <form action="{{ url_for('delete_user_from_chain', id_item=scheduleItem.id, id_user = user.id) }}"
+                          method="POST">
+                        <button type="submit" class="round-button" style="background-color:#167B91;">—</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-left: 100px; margin-top: 40px; display: table; ">
+
+        <form action="{{ url_for('add_user_to_chain', id_item=scheduleItem.id) }}" method="POST">
+            <div style="display: table-cell;">
+                <select name="option_user" style="width:600px; height: 50px;" class="form-control">
+                    {% for o in option_users %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select></div>
+            <div style="display: table-cell; ">
+                <button type="submit" class="btn btn-success" style="background-color:#167B91; margin-left: 60px;">Add
+                    new
+                </button>
+            </div>
+        </form>
     </div>
-</div>
-</li>
-{% endfor %}
-</ul>
 
-<div style="margin: 50px;">
-    <form action="{{ url_for('add_user_to_chain', id_item=scheduleItem.id) }}" method="POST">
-    
-        <select name="option_user" width="300px">
-            {% for o in option_users %}
-                <option value="{{ o }}" SELECTED>{{ o }}</option>  
-            {% endfor %}
-        </select>
-    
-            <button type="submit" class="btn btn-success" style="background-color:#167B91;" >Add new
-            </button>
-    </form>
+
+
+    <div style="margin: 40px; margin-top: 10px;">
+        <button type="button" class="btn btn-success"
+                style="background-color:#167B91; font-size: 20px; margin-right: 20px; width: 100px;"
+                onclick="history.back();">Back
+        </button>
+        <button class="btn btn-success" style="background-color:#167B91; font-size: 20px; width: 100px;" id="saveorder">
+            Save
+        </button>
     </div>
-    
-    
 
-<div style="margin: 50px;">
-    <button type="button" class="btn btn-success" style="background-color:#167B91;" onclick="history.back();" >Back
-    </button>
-    <button class="btn btn-success" style="background-color:#167B91;" id="saveorder" >Save
-    </button>
-</div>
+    <script>
+        var fixHelper = function (e, ui) {
+            ui.children().each(function () {
+                $(this).width($(this).width());
+            });
+            return ui;
+        };
+
+        $('.sortable-table tbody').sortable({
+            helper: fixHelper
+        });
+
+    </script>
+
 
 {% endblock %}
       
-

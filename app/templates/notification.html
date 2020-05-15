@@ -1,47 +1,49 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 {% extends "base.html" %}
 {% block content %}
-<h1>Default channels</h1>
-<div><p>По этой цепочке будут рассылаться уведомления при создании нового типа инцидента</p></div>
+    <h1>Default channels</h1>
+    <div><p>По этой цепочке будут рассылаться уведомления при создании нового типа инцидента</p></div>
 
 
-<table>
-    {% for default in channels %}
-    {% set channel = all|selectattr('id', '==', default.Channel_id) | list | last %}
-    
-    <tr>
-        <td>{{ channel.id }} </td>
-        <td>{{ channel.Users.fullName }} </td>
-        <td>{{ channel.channel_source_type }}</td>
-        <form action="{{ url_for('delete_defchan', id = channel.id) }}" method="POST">
-        <td>
-            <button type="submit" class="btn btn-success" style="background-color:#167B91;" >Delete
-            </button>
-        </a>
-    </td></form>
-    </tr>
-    {% endfor %}
-    <tr>
-        <td></td>
-        <form action="{{ url_for('notification_settings') }}" method="POST">
+    <table>
+        {% for default in channels %}
+            {% set channel = all|selectattr('id', '==', default.Channel_id) | list | last %}
 
-        <td><select name="option_user" width="300px">
-            {% for o in option_users %}
-                <option value="{{ o }}" SELECTED>{{ o }}</option>  
-            {% endfor %}
-        </select></td>
+            <tr>
+                <td>{{ channel.id }} </td>
+                <td>{{ channel.Users.fullName }} </td>
+                <td>{{ channel.channel_source_type }}</td>
+                <form action="{{ url_for('delete_defchan', id = channel.id) }}" method="POST">
+                    <td>
+                        <button type="submit" class="btn btn-success" style="background-color:#167B91;">Delete
+                        </button>
+                        </a>
+                    </td>
+                </form>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td></td>
+            <form action="{{ url_for('notification_settings') }}" method="POST">
 
-        <td><select name="option_channel" width="300px">
-            {% for o in option_channels %}
-                <option value="{{ o }}" SELECTED>{{ o }}</option>  
-            {% endfor %}
-        </select></td>
+                <td><select name="option_user" width="300px">
+                    {% for o in option_users %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select></td>
 
-        <td>
-            <button type="submit" class="btn btn-success" style="background-color:#167B91;" >Add new
-            </button>
-        </a>
-    </td></form>
-    </tr>
-</table>
+                <td><select name="option_channel" width="300px">
+                    {% for o in option_channels %}
+                        <option value="{{ o }}" SELECTED>{{ o }}</option>
+                    {% endfor %}
+                </select></td>
+
+                <td>
+                    <button type="submit" class="btn btn-success" style="background-color:#167B91;">Add new
+                    </button>
+                    </a>
+                </td>
+            </form>
+        </tr>
+    </table>
 {% endblock %}

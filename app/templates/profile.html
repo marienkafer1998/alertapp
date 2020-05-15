@@ -6,82 +6,91 @@
 
 
 
-{% set all_user=incidents|length %}
+    {% set all_user=incidents|length %}
 
 
-{% set work=incidents|selectattr('status', '==', 'Work-in-progress')|list %}
-{% set work_num=work|length %}
+    {% set work=incidents|selectattr('status', '==', 'Work-in-progress')|list %}
+    {% set work_num=work|length %}
 
 
-{% set complete=incidents|selectattr('status', '==', 'Complete')|list %}
-{% set complete_num=complete|length %}
+    {% set complete=incidents|selectattr('status', '==', 'Complete')|list %}
+    {% set complete_num=complete|length %}
 
-{% set postponed=incidents|selectattr('status', '==', 'Postponed')|list %}
+    {% set postponed=incidents|selectattr('status', '==', 'Postponed')|list %}
 
-{% set postponed_num=postponed|list|length %}
+    {% set postponed_num=postponed|list|length %}
 
 
-<div class="profile-container">
-    <div class="profile">
-        <div class="card">
-            <div class="card-body">
-              <h1 class="card-title">{{ user.fullName }}</h1>
-              {% include 'channels.html' %}
+    <div class="profile-container">
+        <div class="profile">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">{{ user.fullName }}</h1>
+                    {% include 'channels.html' %}
+                </div>
             </div>
-        </div>   
-    </div>
+        </div>
 
-    <div class="profile">
-        <div class="card">
-            <div class="card-body">
-              <h1 class="card-title">Statistic</h1> 
+        <div class="profile">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">Statistic</h1>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{% if all_user != 0 %}
-  <div class="profile-container">
-    <div class="inc">
-        <div class="card">
-            <div class="card-body">
-                <p class="gray-title">All your incidents</p>
-              <h4 class="card-title"><a style="color: #ffdb3d;" href="{{ url_for('profile_info', query = 'all') }}">{{ all_user }}</a></h4>
-              <p class="gray-title">{{ (all_user/all*100)|round(1) }}% of all incidents</p>
+    {% if all_user != 0 %}
+        <div class="profile-container">
+            <div class="inc">
+                <div class="card">
+                    <div class="card-body">
+                        <p class="gray-title">All your incidents</p>
+                        <h4 class="card-title"><a style="color: #ffdb3d;"
+                                                  href="{{ url_for('profile_info', query = 'all') }}">{{ all_user }}</a>
+                        </h4>
+                        <p class="gray-title">{{ (all_user/all*100)|round(1) }}% of all incidents</p>
+                    </div>
+                </div>
+
             </div>
-          </div>
-        
-    </div>
-    <div class="inc">
-        <div class="card">
-            <div class="card-body">
-                <p class="gray-title">Your work-in-progress incidents</p>
-              <h4 class="card-title"><a style="color: #a366ff;" href="{{ url_for('profile_info', query = 'work') }}">{{ work_num }}</a></h4>
-              <p class="gray-title">{{ (work_num/all_user*100)|round(1) }}% of all your incidents</p>    
+            <div class="inc">
+                <div class="card">
+                    <div class="card-body">
+                        <p class="gray-title">Your work-in-progress incidents</p>
+                        <h4 class="card-title"><a style="color: #a366ff;"
+                                                  href="{{ url_for('profile_info', query = 'work') }}">{{ work_num }}</a>
+                        </h4>
+                        <p class="gray-title">{{ (work_num/all_user*100)|round(1) }}% of all your incidents</p>
+                    </div>
+                </div>
             </div>
-          </div>
-    </div>
-    <div class="inc">
-        <div class="card">
-            <div class="card-body">
-                <p class="gray-title">Your postponed incidents</p>
-                <div>
-              <h4 class="card-title"><a style="color: rgb(18, 185, 223);" href="{{ url_for('profile_info', query = 'postponed') }}">{{ postponed_num }}</a></h4>
-              <p class="gray-title">{{ (postponed_num/all_user*100)|round(1) }}% of all your incidents</p> </div>
+            <div class="inc">
+                <div class="card">
+                    <div class="card-body">
+                        <p class="gray-title">Your postponed incidents</p>
+                        <div>
+                            <h4 class="card-title"><a style="color: rgb(18, 185, 223);"
+                                                      href="{{ url_for('profile_info', query = 'postponed') }}">{{ postponed_num }}</a>
+                            </h4>
+                            <p class="gray-title">{{ (postponed_num/all_user*100)|round(1) }}% of all your incidents</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-    </div>
-    <div class="inc">
-        <div class="card">
-            <div class="card-body">
-            <p class="gray-title">Your complete incidents</p> 
-              <h4 class="card-title"><a style="color: #3dff9e;" href="{{ url_for('profile_info', query = 'complete') }}">{{ complete_num }}</a></h4> 
-              <p class="gray-title">{{ (complete_num/all_user*100)|round(1) }}% of all your incidents</p> 
+            <div class="inc">
+                <div class="card">
+                    <div class="card-body">
+                        <p class="gray-title">Your complete incidents</p>
+                        <h4 class="card-title"><a style="color: #3dff9e;"
+                                                  href="{{ url_for('profile_info', query = 'complete') }}">{{ complete_num }}</a>
+                        </h4>
+                        <p class="gray-title">{{ (complete_num/all_user*100)|round(1) }}% of all your incidents</p>
+                    </div>
+                </div>
             </div>
-          </div>
-    </div>
-  </div>
-  {% endif %}
+        </div>
+    {% endif %}
 {% endblock %}
 
 
