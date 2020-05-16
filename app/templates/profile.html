@@ -2,10 +2,6 @@
 {% extends "base.html" %}
 {% block content %}
 
-
-
-
-
     {% set all_user=incidents|length %}
 
 
@@ -40,28 +36,31 @@
         </div>
     </div>
 
-    {% if all_user != 0 %}
+    
         <div class="profile-container">
+            {% if all != 0 %}
             <div class="inc">
                 <div class="card">
                     <div class="card-body">
                         <p class="gray-title">All your incidents</p>
-                        <h4 class="card-title"><a style="color: #ffdb3d;"
+                        <h4 class="card-title" style="padding-left: 30px;"><a style="color: #ffdb3d;"
                                                   href="{{ url_for('profile_info', query = 'all') }}">{{ all_user }}</a>
                         </h4>
-                        <p class="gray-title">{{ (all_user/all*100)|round(1) }}% of all incidents</p>
+                        <p class="black-title">{{ (all_user/all*100)|round(1) }}% of all incidents</p>
                     </div>
                 </div>
-
+                {% endif %}
+                
             </div>
+            {% if all_user != 0 %}
             <div class="inc">
                 <div class="card">
                     <div class="card-body">
                         <p class="gray-title">Your work-in-progress incidents</p>
-                        <h4 class="card-title"><a style="color: #a366ff;"
+                        <h4 class="card-title" style="padding-left: 30px;"><a style="color: #a366ff;"
                                                   href="{{ url_for('profile_info', query = 'work') }}">{{ work_num }}</a>
                         </h4>
-                        <p class="gray-title">{{ (work_num/all_user*100)|round(1) }}% of all your incidents</p>
+                        <p class="black-title">{{ (work_num/all_user*100)|round(1) }}% of all your incidents</p>
                     </div>
                 </div>
             </div>
@@ -70,10 +69,10 @@
                     <div class="card-body">
                         <p class="gray-title">Your postponed incidents</p>
                         <div>
-                            <h4 class="card-title"><a style="color: rgb(18, 185, 223);"
+                            <h4 class="card-title" style="padding-left: 30px;"><a style="color: rgb(18, 185, 223);"
                                                       href="{{ url_for('profile_info', query = 'postponed') }}">{{ postponed_num }}</a>
                             </h4>
-                            <p class="gray-title">{{ (postponed_num/all_user*100)|round(1) }}% of all your incidents</p>
+                            <p class="black-title">{{ (postponed_num/all_user*100)|round(1) }}% of all your incidents</p>
                         </div>
                     </div>
                 </div>
@@ -82,15 +81,16 @@
                 <div class="card">
                     <div class="card-body">
                         <p class="gray-title">Your complete incidents</p>
-                        <h4 class="card-title"><a style="color: #3dff9e;"
+                        <h4 class="card-title" style="padding-left: 30px;"><a style="color: #3dff9e;"
                                                   href="{{ url_for('profile_info', query = 'complete') }}">{{ complete_num }}</a>
                         </h4>
-                        <p class="gray-title">{{ (complete_num/all_user*100)|round(1) }}% of all your incidents</p>
+                        <p class="black-title">{{ (complete_num/all_user*100)|round(1) }}% of all your incidents</p>
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
-    {% endif %}
+    
 {% endblock %}
 
 

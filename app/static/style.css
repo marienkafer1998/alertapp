@@ -42,7 +42,7 @@ h2 {
 
 
 .upnav li a, .dropbtn {
-    font-family: Khand;
+    font-family: Khand-light;
     display: inline-block;
     color: white;
     text-align: center;
@@ -50,6 +50,7 @@ h2 {
     padding: 12px 20px;
     text-decoration: none;
     font-size: 23px;
+    font-weight: 100;
 }
 
 .menu-item:hover, .dropdown:hover .dropbtn {

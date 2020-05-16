@@ -12,7 +12,6 @@ import time, asyncio
 from sqlalchemy import distinct, select
 from itertools import cycle
 
-
 from notification import send_message_TG
 # from models import Alerts
 
@@ -20,11 +19,13 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://alertapp:alertapp@localhost/alertapp'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
+
 app.config['CELERY_BROKER_URL'] = 'redis://127.0.0.1:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://127.0.0.1:6379/0'
 
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
+
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
@@ -73,8 +74,7 @@ class Incidents(db.Model):
 users = db.Table('users',
     db.Column('ScheduleItem_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
     db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
-    db.Column('Position', db.Integer, autoincrement=True)
-)
+    db.Column('Position', db.Integer, autoincrement=True))
 
 class ScheduleItems(db.Model):
 
@@ -114,25 +114,11 @@ class Users(db.Model, UserMixin):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(20), nullable=False)
-    fullName = db.Column(db.String(60), nullable=False)
     password = db.Column(db.String(20), nullable=False)
+    fullName = db.Column(db.String(60), nullable=False)
     incidents = db.relationship('Incidents', backref='Users', lazy=True)
     channels = db.relationship('Channels', backref='Users', lazy=True, cascade = "all, delete, delete-orphan")
 
-
-
-@app.route('/sort', methods=['GET', 'POST'])
-def index():
-    id =1 
-    # option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
-    # week = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday' }
-
-    if request.method=='POST':
-        order = request.get_json()
-        print(order)
-        print(type(order[0]))
-
-    return render_template('index.html')
 
 @manager.user_loader
 def load_user(user_id):
@@ -161,14 +147,26 @@ def logout():
     logout_user()
     return redirect(url_for('login_page'))
 
+
+
 @celery.task()
+def send_mes(incident):
+    print(incident.id)
+    asyncio.sleep(10)
+    return {"status": True}
+
+
+@celery.task
 def send_notification(incident, notification_rule):
     print('[*] Внутри функции send_notification')
     print('[*] Обращение к бд за контактами')
-    contacts = ScheduleItems.query.filter(ScheduleItems.id == notification_rule.scheduleItem_id).first().channels
-    print('[*] Взяли контакты')
+    users = ScheduleItems.query.filter(ScheduleItems.id == notification_rule.scheduleItem_id).first().users
+    contacts=[]
+    for user in users:
+        for channel in user.channels:
+            contacts.append(channel)
+    print(contacts)
     body = notification_rule.body
-    print('[*] Сделали боди')
     time_interval=TypeOfIncident.query.get(incident.type_id).interval/2 
     print(body)
     for _, contact in enumerate(cycle(contacts)):
@@ -180,7 +178,7 @@ def send_notification(incident, notification_rule):
             send_message_TG(url, body)
         if type=='Email':
             print('Sending to email')
-        asyncio.sleep(10)
+        time.sleep(10)
         # time.sleep(time_interval*60)
         incident = Incidents.query.filter(Incidents.id == incident.id).first()
         db.session.commit()
@@ -188,7 +186,7 @@ def send_notification(incident, notification_rule):
         if incident.status!='Active':
             print('Hurrah! You.ve done it! Incident status is ', incident.status)
             break
-        asyncio.sleep(10)
+        time.sleep(10)
         # time.sleep(time_interval*60)
     return {"status": True}
 
@@ -235,8 +233,8 @@ def get_data():
             db.session.add(notification)
             db.session.commit()
             print('[*] вхожу в функцию уведомления')
-
-            # send_notification.delay(incident_obj, notification)
+            # send_mes.delay(incident_obj)
+            send_notification.delay(incident_obj, notification)
         return jsonify(data)
     return "no item"
 
@@ -386,7 +384,6 @@ def delete_defchan(id):
 # @login_required
 def show_schedule():
     on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
-    
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
     return render_template('schedule.html', active=on_types, nonactive=off_types)
 

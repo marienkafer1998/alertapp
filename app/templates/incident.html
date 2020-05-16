@@ -2,15 +2,6 @@
 {% block content %}
     <link rel="stylesheet" href="{{ url_for('static', filename='incidents.css') }}">
 
-    <script>
-        function Option() {
-            var OptionChoose = document.getElementById("Option").options.selectedIndex;
-            var PostTime = document.getElementById("time_postponed");
-            if (OptionChoose == 'Postponed') {
-                PostTime.style.display = 'block';
-            }
-        }
-    </script>
 
     <h1>Information about incident with id= {{ incident.id }}</h1>
 
@@ -23,7 +14,7 @@
                 {% else %}
 
                     <td>
-                        <select name="option" id="Option" width="300px" onChange="Option();">
+                        <select name="option" id="Option" width="300px" onchange="OnSelectionChange (this)">
                             {% for o in option_list %}
                                 <option value="{{ o }}" SELECTED>{{ o }}</option>
                                 {% set value = o %}
@@ -37,21 +28,14 @@
 
 
             </tr>
-            <tr id="time_postponed" style="display: none;">
-                <td style="display: none;">Postponed time</td>
+           
+            
+            <tr>
+                <td>Postponed time</td>
                 <td>
-                    <input name="time" type="text" size="5" style="width: 50px; display: none;"> days
+                    <input  id="time_postponed" disabled="disabled" name="time" type="text" size="5" style="width: 50px;"> days
                 </td>
             </tr>
-            {% if (incident.postponed_to == None) and (incident.status!='Complete') %}
-                <tr>
-                    <td>Postponed time</td>
-                    <td>
-                        <input name="time" type="text" size="5" style="width: 50px;"> days
-                    </td>
-                </tr>
-            {% endif %}
-
 
             {% if incident.status=='Postponed' %}
                 <tr>
@@ -108,5 +92,19 @@
             {% endif %}
     </form>
 
+    <script type="text/javascript">
+        function OnSelectionChange (select) {
+            
+            var selectedOption = select.options[select.selectedIndex].value;
+
+            var PostTime = document.getElementById("time_postponed");
+            if (selectedOption == "Postponed"){
+                PostTime.disabled =0;
+       }
+            else {
+                PostTime.disabled =1;
+            }
+        }
+    </script>
 
 {% endblock %}
