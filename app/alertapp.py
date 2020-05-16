@@ -11,6 +11,7 @@ from forms import TypeForm
 import time, asyncio
 from sqlalchemy import distinct, select
 from itertools import cycle
+import json
 
 from notification import send_message_TG
 # from models import Alerts
@@ -22,6 +23,7 @@ app.config['SQLALCHEMY_ECHO'] = False
 
 app.config['CELERY_BROKER_URL'] = 'redis://127.0.0.1:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://127.0.0.1:6379/0'
+app.config['CELERY_RESULT_SERIALIZER']= 'json'
 
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
@@ -149,17 +151,28 @@ def logout():
 
 
 
-@celery.task()
-def send_mes(incident):
-    print(incident.id)
-    asyncio.sleep(10)
-    return {"status": True}
+@celery.task(serializer='json')
+def send_mes(url, type, body):
+    url=contact.channel_source_value 
+    print('[*] Sending to', url)
+    type = contact.channel_source_type
+    if type=='Telegram':
+        send_message_TG(url, body)
+    if type=='Email':
+        print('Sending to email')
+    # print(incident.id)
+    # time.sleep(10)
+    # print('[*] Time for incident ', incident.it, ' has ended')
+    return json.dumps({"status": True})
 
 
-@celery.task
-def send_notification(incident, notification_rule):
+
+@celery.task(serializer='json')
+def send_notification(id):
     print('[*] Внутри функции send_notification')
     print('[*] Обращение к бд за контактами')
+    incident = Incidents.query.get(id)
+    notification_rule=NotificationRules.query.filter(NotificationRules.incident_id==id).first()
     users = ScheduleItems.query.filter(ScheduleItems.id == notification_rule.scheduleItem_id).first().users
     contacts=[]
     for user in users:
@@ -174,6 +187,7 @@ def send_notification(incident, notification_rule):
         print('[*] Sending to', url)
         type = contact.channel_source_type
         print(type)
+        # send_mes.delay(url, type, body)
         if type=='Telegram':
             send_message_TG(url, body)
         if type=='Email':
@@ -188,7 +202,7 @@ def send_notification(incident, notification_rule):
             break
         time.sleep(10)
         # time.sleep(time_interval*60)
-    return {"status": True}
+    return jsonify({"status": True})
 
 # разбить на функцию формирования инцидентов
 @app.route('/receive', methods=['POST', 'GET'])
@@ -234,7 +248,7 @@ def get_data():
             db.session.commit()
             print('[*] вхожу в функцию уведомления')
             # send_mes.delay(incident_obj)
-            send_notification.delay(incident_obj, notification)
+            send_notification.delay(incident_obj.id)
         return jsonify(data)
     return "no item"
 
