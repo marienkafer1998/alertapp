@@ -4,7 +4,7 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.20.0
     ports:
-    - "9093:9093"
+    - 9093:9093
     volumes:
     - ./alertmanager/config/alertmanager.yaml:/etc/alertmanager/alertmanager.yaml
     - ./alertmanager/data:/alertmanager/data
@@ -33,3 +33,21 @@ services:
     image: adminer
     ports:
       - 8080:8080
+
+  redis:
+    image: redis:6.0.2-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/redis-data:/var/lib/redis
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+  flower:  
+    image: mher/flower:latest
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=8888
+    ports:  
+      - 8888:8888
