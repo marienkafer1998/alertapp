@@ -1,4 +1,5 @@
 #docker-compose up -d --build app
+# celery -A alertapp.celery worker --loglevel=info
 
 from flask import Flask, request, jsonify, render_template, flash, redirect, url_for
 from flask_moment import Moment
@@ -25,7 +26,7 @@ app.config['CELERY_BROKER_URL'] = 'redis://127.0.0.1:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://127.0.0.1:6379/0'
 app.config['CELERY_RESULT_SERIALIZER']= 'json'
 
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'], include=['alertapp'])
 celery.conf.update(app.config)
 
 moment = Moment(app)
@@ -150,19 +151,17 @@ def logout():
     return redirect(url_for('login_page'))
 
 
-
 @celery.task(serializer='json')
-def send_mes(url, type, body):
-    url=contact.channel_source_value 
-    print('[*] Sending to', url)
-    type = contact.channel_source_type
-    if type=='Telegram':
-        send_message_TG(url, body)
-    if type=='Email':
-        print('Sending to email')
-    # print(incident.id)
-    # time.sleep(10)
-    # print('[*] Time for incident ', incident.it, ' has ended')
+def postponed_incident(id):
+    incident=Incidents.query.get(id)
+    print(incident.status)
+    # incident.postponed_to <= datetime.now() and 
+    if (incident.status == 'Postponed'):
+        print('inside cicle')
+        incident.status = 'Active'
+        incident.postponed_to = None
+        send_notification.delay(incident.id) 
+        db.session.commit()
     return json.dumps({"status": True})
 
 
@@ -170,7 +169,6 @@ def send_mes(url, type, body):
 @celery.task(serializer='json')
 def send_notification(id):
     print('[*] Внутри функции send_notification')
-    print('[*] Обращение к бд за контактами')
     incident = Incidents.query.get(id)
     notification_rule=NotificationRules.query.filter(NotificationRules.incident_id==id).first()
     users = ScheduleItems.query.filter(ScheduleItems.id == notification_rule.scheduleItem_id).first().users
@@ -184,10 +182,8 @@ def send_notification(id):
     print(body)
     for _, contact in enumerate(cycle(contacts)):
         url=contact.channel_source_value 
-        print('[*] Sending to', url)
         type = contact.channel_source_type
         print(type)
-        # send_mes.delay(url, type, body)
         if type=='Telegram':
             send_message_TG(url, body)
         if type=='Email':
@@ -196,22 +192,22 @@ def send_notification(id):
         # time.sleep(time_interval*60)
         incident = Incidents.query.filter(Incidents.id == incident.id).first()
         db.session.commit()
-        print('[*] After conn to DB status is ', incident.status)
         if incident.status!='Active':
             print('Hurrah! You.ve done it! Incident status is ', incident.status)
+            return json.dumps({"status": True})
             break
         time.sleep(10)
         # time.sleep(time_interval*60)
-    return jsonify({"status": True})
+    return json.dumps({"status": True})
+
 
 # разбить на функцию формирования инцидентов
 @app.route('/receive', methods=['POST', 'GET'])
 def get_data():
     if request.method == 'POST':
         data = request.get_json()
-        num_types = db.session.query(TypeOfIncident).count()
-        num_alert = len(data)
         types_incidents = db.session.query(TypeOfIncident.id, TypeOfIncident.labels).filter(TypeOfIncident.active == True).all()
+        num_alert = len(data)
         incidents = defaultdict(list)
         for alert in data:
             labels = alert['labels'].values()
@@ -224,33 +220,40 @@ def get_data():
                 if correct_type:
                     incidents[type_[0]].append(alert)
         for incident in incidents.items():
-            print('[*] Создание инцидента')
-            incident_obj = Incidents(type_id = incident[0], start = datetime.now(), status = 'Active')
-            print('[*] Добавляю инцидент')
-            db.session.add(incident_obj)
-            print('[*] Делаю коммит')
-            db.session.commit()
-            for alert in incident[1]:
-                labels = alert['labels']
-                print('[*] Создаю алерт')
-                alert_obj = Alerts(severity=labels['severity'], service=labels['service'], Incidents=incident_obj)
-                print('[*] Добавлю алерт')
-                db.session.add(alert_obj)
-                print('[*] Коммит')
-                db.session.commit()
-            # Создание NotificationRule для этого входящего инцидента
-            day = datetime.today().isoweekday()
-            sch = ScheduleItems.query.filter(ScheduleItems.dayOfWeek == day and ScheduleItems.type_id == incident_obj.type_id).first()
-            url_inc = 'http://localhost:1080/incidents/'+str(incident_obj.id)
-            message = 'Hurry! You have '+incident_obj.TypeOfIncident.typeName+' incidents! Check it here '+url_inc
-            notification = NotificationRules(incident_id = incident_obj.id, scheduleItem_id = sch.id, body = message, interval = 1, status = True)
-            db.session.add(notification)
-            db.session.commit()
-            print('[*] вхожу в функцию уведомления')
-            # send_mes.delay(incident_obj)
-            send_notification.delay(incident_obj.id)
+            create_incident(incident)
+            
         return jsonify(data)
     return "no item"
+
+
+def create_incident(incident):
+    print('[*] Создание инцидента')
+    incident_obj = Incidents(type_id = incident[0], start = datetime.now(), status = 'Active')
+    print('[*] Добавляю инцидент')
+    db.session.add(incident_obj)
+    print('[*] Делаю коммит')
+    db.session.commit()
+    for alert in incident[1]:
+        labels = alert['labels']
+        print('[*] Создаю алерт')
+        alert_obj = Alerts(severity=labels['severity'], service=labels['service'], Incidents=incident_obj)
+        print('[*] Добавлю алерт')
+        db.session.add(alert_obj)
+        print('[*] Коммит')
+        db.session.commit()
+    # Создание NotificationRule для этого входящего инцидента
+    day = datetime.today().isoweekday()
+    sch = ScheduleItems.query.filter(ScheduleItems.dayOfWeek == day, ScheduleItems.type_id == incident_obj.type_id).first()
+    print('[*] ScheduleItems id, day, type id', sch.id, day, incident_obj.type_id)
+    url_inc = 'http://localhost:1080/incidents/'+str(incident_obj.id)
+    message = 'Hello, big fat popa! You have '+incident_obj.TypeOfIncident.typeName+' incidents! But you dont need to care about it, because its test one!'
+
+    # message = 'Hurry! You have '+incident_obj.TypeOfIncident.typeName+' incidents! Check it here '+url_inc
+    notification = NotificationRules(incident_id = incident_obj.id, scheduleItem_id = sch.id, body = message, interval = 1, status = True)
+    db.session.add(notification)
+    db.session.commit()
+    send_notification.delay(incident_obj.id)
+
 
 @app.route('/', methods=['GET'])
 @app.route('/incidents', methods=['GET'])
@@ -276,7 +279,6 @@ def show_incident(id):
     option_list.remove(actual_status)
     option_list.append(actual_status)
     if request.method == 'POST':
-
         print('[*] Changing incidents with id = ', incident.id)
         print('[*] status before', incident.status)
         status = request.form.get('option')
@@ -290,21 +292,26 @@ def show_incident(id):
             db.session.delete(notification)
             db.session.commit()
             incident.end = end
-        if status=='Postponed':
+        if (status=='Postponed' and incident.postponed_to == None):
             print('[*] Добавляю отложенное время') 
-            postponed_time = request.form.get('time')
-            postponed_to = timedelta(days = int(postponed_time))
+            postponed_time = int(request.form.get('time'))
+            postponed_to = timedelta(days = postponed_time)
             incident.postponed_to = incident.start + postponed_to
+            # postponed_incident.apply_async(args=[id], countdown=60*60*24*postponed_time)
+            postponed_incident.apply_async(args=[id], countdown=60*postponed_time)
+            
         else:
             incident.postponed_to = None
         if incident.user_id == None:
             print('[*] Добавляю юзера')
             incident.user_id= current_user.id
+        
         print('[*] status after', incident.status)
         print('[*] Делаю коммит ', incident.status)
-        db.session.commit()   
+        db.session.commit()  
 
-        return render_template('incident.html', incident=incident, option_list=option_list)
+
+        return render_template('incident.html', incident=incident, option_list=[])
     return render_template('incident.html', incident=incident, option_list=option_list)
 
 
@@ -361,30 +368,6 @@ def edit_type(id):
     form = TypeForm(obj=type)
     return render_template('edit_type.html', type=type, form=form)
 
-
-
-# @app.route('/notification', methods=['GET', 'POST'])
-# # @login_required
-# def notification_settings():
-#     print('[*] Show default channels')
-#     default=db.session.query(defaultChannels).all()
-#     option_channels=[obj[0] for obj in db.session.query(distinct(Channels.channel_source_type)).all()]
-#     option_users=[obj[0] for obj in db.session.query(distinct(Users.fullName)).all()] 
-#     main = Channels.query.all()
-#     if request.method == 'POST':
-#         user = request.form.get('option_user')
-#         channel=request.form.get('option_channel')
-#         print(user, channel)
-#         user_id = Users.query.filter(Users.fullName==user).first().id
-#         channel_id = Channels.query.filter(Channels.user_id == user_id, Channels.channel_source_type==channel ).first().id
-#         print(user_id, channel_id)
-#         print(default)
-#         if (user_id, channel_id) not in default:
-#             insert = defaultChannels.insert().values(Channel_id=channel_id, User_id=user_id)
-#             db.engine.execute(insert)
-#             default=db.session.query(defaultChannels).all()
-#         return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
-#     return render_template('notification.html', channels=default, all = main, option_channels = option_channels, option_users=option_users)
 
 @app.route('/notification/<int:id>', methods=['POST'])
 def delete_defchan(id):
@@ -478,6 +461,8 @@ def profile():
 
 @app.route('/profile/<string:query>', methods=['GET','POST'])
 def profile_info(query):
+    qur=query
+    print(query, qur)
     id = 1 
     # user = Users.query.get(current_user.id)
     user = Users.query.get(id)
@@ -485,34 +470,26 @@ def profile_info(query):
     incidents = Incidents.query.filter(Incidents.user_id == user.id).all()
     all = db.session.query(Incidents).count()
     
-    if request.method == 'POST': # изменение каналов
+    if request.method == 'POST' and query=='channels': # изменение каналов
         type = request.form.get('type')
         value = request.form.get('value')
         channel = Channels(user_id=user.id, channel_source_type=type, channel_source_value=value)
         db.session.add(channel)
         db.session.commit()
-
-        return render_template('profile.html', user = user, query = query, incidents = incidents, all=all)
+        query=''
+        return redirect(url_for('profile'))
     if query:
         return render_template('user_inc.html', query = query, incidents = incidents)
     return render_template('profile.html', user = user, query = query, incidents = incidents, all=all)
 
 @app.route('/profile/channels/<id>/deleting', methods=['GET', 'POST'])
 def delete_user_channel(id):
-    query='channels'
     print(request.method)
     if request.method == 'POST':
         channel = Channels.query.get(id)
-        print(channel)
-        delete = defaultChannels.delete().where(defaultChannels.c.Channel_id==id)
-        db.engine.execute(delete)
-
         db.session.delete(channel)
-
         db.session.commit()
-    return redirect(url_for('profile_info', query=query))
-
-
+    return redirect(url_for('profile'))
 
 
 @app.after_request
@@ -522,22 +499,10 @@ def redirect_to_signin(response):
     return response
 
 
-# @celery.task
-# def sending_notification(incident):
-#     queue = incidents
-#     if incidents.status =Postponed and incident.postponed_to >= time.now():
-#         incident.status = active
-#         incident.postpoed_to = None
-#     for incident in queue.filter(incident.status=active)
-#         send_message(incident)    
-#     return result
+
 
 if __name__ == '__main__':
 
     db.create_all()
-    # a = '12345'
-    # b = Sortable(a)
-    # db.session.add(b)
-    # db.session.commit()
-    # task = checking_incidents.delay(db.session.query(Incidents).all())
+    # queue = Incidents.query.filter(Incidents.status=='Postponed')
     app.run(host='0.0.0.0', port=1080, debug=True)

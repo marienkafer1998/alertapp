@@ -4,13 +4,15 @@
 
 
     <h1>Information about incident with id= {{ incident.id }}</h1>
-
+    {% set num=option_list|length %}
     <form action="{{ url_for('show_incident', id = incident.id) }}" method="POST">
         <table class="edit-table">
-            <tr>
+            <tr> 
                 <td>Status</td>
                 {% if incident.status=='Complete' %}
                     <td>{{ incident.status }}</td>
+                {% elif num==0  %}
+                <td>{{ incident.status }}</td>
                 {% else %}
 
                     <td>
@@ -80,9 +82,10 @@
         </table>
 
         <div style="margin-left: 50px;">
-            <button type="button" class="btn btn-success" style="background-color:#167B91;" onclick="history.back();">
-                Back
-            </button>
+            <a href="{{ url_for('show_incidents', filter='all') }}" method='GET'>
+                <button type="button" class="btn btn-success" style="background-color:#167B91;" >Back
+                </button>
+            </a>
 
 
             {% if incident.status!='Complete' %}

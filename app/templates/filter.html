@@ -1,4 +1,4 @@
-{% for incident in incidents %}
+{% for incident in incidents|sort(attribute='status') %}
     <tr>
         <td><a href="{{ url_for('show_incident', id = incident.id) }}">
             <button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;">
