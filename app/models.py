@@ -7,15 +7,22 @@ from forms import TypeForm
 from alertapp import db, manager
 
 
+Labels = db.Table('Labels',
+    db.Column('Alert_id', db.Integer, db.ForeignKey('Alerts.id')),
+    db.Column('Label', db.String(60)),
+    db.Column('Value', db.String(60))
+
+
 
 class Alerts(db.Model):
 
     __tablename__ = 'Alerts'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    service = db.Column(db.String(64), unique=False, nullable=False)
-    severity = db.Column(db.String(64), nullable=False)
     incident_id =  db.Column(db.Integer, db.ForeignKey('Incidents.id'), nullable=False)
+    alertname = db.Column(db.String(64), unique=False, nullable=False)
+    hash_id = db.Column(db.String(64), unique=True, nullable=False)
+    alerts = db.relationship('Labels', backref=db.backref('alert'), lazy=True)
 
 
 
@@ -25,11 +32,13 @@ class TypeOfIncident(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     typeName = db.Column(db.String(30), unique=True, nullable=False)
-    description = db.Column(db.String(300), unique=True, nullable=False)
-    labels = db.Column(db.Text, nullable=False) #instead of JSON and ARRAY
+    description = db.Column(db.String(300), nullable=False)
+    labels = db.Column(db.Text, unique=True, nullable=False) #instead of JSON and ARRAY
     active = db.Column(db.Boolean, nullable=False)
+    interval = db.Column(db.Integer, nullable=False)
     incidents = db.relationship('Incidents', backref='TypeOfIncident', lazy=True)
-    schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True)
+    schedule_items = db.relationship('ScheduleItems', backref='TypeOfIncident', lazy=True, cascade = "all, delete, delete-orphan")
+
 
 class Incidents(db.Model):
 
@@ -40,8 +49,15 @@ class Incidents(db.Model):
     start = db.Column(db.DateTime, nullable=True)
     end = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(30), nullable=False)
+    postponed_to = db.Column(db.DateTime, nullable=True)
     user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=True)
-    alerts = db.relationship('Alerts', backref='Incidents', lazy=True)
+    alerts = db.relationship('Alerts', backref='Incidents', lazy=True, cascade = "all, delete, delete-orphan")
+
+
+users = db.Table('users',
+    db.Column('ScheduleItem_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
+    db.Column('User_id', db.Integer, db.ForeignKey('Users.id')),
+    db.Column('Position', db.Integer, autoincrement=True))
 
 class ScheduleItems(db.Model):
 
@@ -49,15 +65,10 @@ class ScheduleItems(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type_id =  db.Column(db.Integer, db.ForeignKey('TypeOfIncident.id'), nullable=False)
-    dayOfWeek = db.Column(db.Integer) # probably doesn't work
-    # channels = db.Column(db.Text, nullable=True)
-    channels = db.relationship('Channel', secondary=channels,
-        backref=db.backref('ScheduleItems', lazy='dynamic'))
+    dayOfWeek = db.Column(db.Integer)
+    users = db.relationship('Users', secondary=users,
+        backref=db.backref('ScheduleItems'))
 
-channels = db.Table('channels',
-    db.Column('ScheduleItems_id', db.Integer, db.ForeignKey('ScheduleItems.id')),
-    db.Column('Channels_id', db.Integer, db.ForeignKey('Channels.id'))
-)
 
 class Channels(db.Model):
 
@@ -85,8 +96,10 @@ class Users(db.Model, UserMixin):
     __tablename__ = 'Users'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(60), nullable=False)
+    username = db.Column(db.String(20), nullable=False)
+    password = db.Column(db.String(20), nullable=False)
     fullName = db.Column(db.String(60), nullable=False)
-    password = db.Column(db.String(260), nullable=False)
     incidents = db.relationship('Incidents', backref='Users', lazy=True)
-    channels = db.relationship('Channels', backref='Users', lazy=True)
+    channels = db.relationship('Channels', backref='Users', lazy=True, cascade = "all, delete, delete-orphan")
+
+

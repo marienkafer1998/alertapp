@@ -14,10 +14,6 @@
             <td>{{ moment(incident.end).format('MMMM Do YYYY, h:mm:ss a') }}</td>
         {% endif %}
         <td>{{ incident.Users.fullName }}</td>
-        <td>{% for alert in incident.alerts %}
-            <b>#{{ alert.service }}</b>
-            <b>#{{ alert.severity }}</b>
-        {% endfor %}
-        </td>
+       
     </tr>
 {% endfor %}
