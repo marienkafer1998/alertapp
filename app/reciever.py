@@ -1,14 +1,4 @@
-def hash_value(labels, starts):
-    hash_str = labels.get("alertname", "") + labels.get("instance", "") + starts
-
-    return hash(hash_str)
-
-
-def query_hash_id(hash_id):
-    data = Alerts.query.filter_by(hash_id=hash_id).first()
-
-    return data
-
+from utils import hash_value, query_hash_id
 
 @app.route('/receive', methods=['POST', 'GET'])
 def get_data():

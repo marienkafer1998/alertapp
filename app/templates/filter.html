@@ -4,6 +4,7 @@
             <button type="button" class="btn btn-success" style="background-color:#167B91; border-radius: 50%;">
                 {{ incident.id }}</button>
         </a></td>
+        
 
         <td>{{ incident.status }}</td>
         <td>{{ incident.TypeOfIncident.typeName }}</td>
@@ -14,6 +15,5 @@
             <td>{{ moment(incident.end).format('MMMM Do YYYY, h:mm:ss a') }}</td>
         {% endif %}
         <td>{{ incident.Users.fullName }}</td>
-       
     </tr>
 {% endfor %}

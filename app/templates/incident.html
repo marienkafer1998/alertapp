@@ -73,9 +73,7 @@
             <tr>
                 <td>Alerts</td>
                 <td>{% for alert in incident.alerts %}
-                    {% for label in alert.labels %}
-            #{{ label.Value }}
-        {% endfor %}
+            #{{ alert.alertname }}
                 {% endfor %}
                 </td>
             </tr>

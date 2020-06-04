@@ -18,6 +18,8 @@ from itertools import cycle
 import json
 
 from notification import send_message_TG
+from utils import hash_value, query_hash_id
+
 # from models import Alerts
 
 app = Flask(__name__)
@@ -54,8 +56,8 @@ class Alerts(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     incident_id =  db.Column(db.Integer, db.ForeignKey('Incidents.id'), nullable=False)
     alertname = db.Column(db.String(64), unique=False, nullable=False)
-    hash_id = db.Column(db.String(64), unique=True, nullable=False)
-    labels = db.relationship('Labels', backref=db.backref('alert'), lazy=True)
+    hash_id = db.Column(db.String(64), unique=False, nullable=False)
+    labels = db.relationship('Labels', backref=db.backref('alert'), lazy=True, cascade = "all, delete, delete-orphan")
 
 
 
@@ -109,7 +111,7 @@ class Channels(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id =  db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
-    channel_source_type = db.Column(db.String(60), nullable=False) # probably should be in another table
+    channel_source_type = db.Column(db.String(60), nullable=False) 
     channel_source_value = db.Column(db.String(150), nullable=False)
 
 class NotificationRules(db.Model):
@@ -158,18 +160,32 @@ def login_page():
     return render_template('login.html')
 
 @app.route('/logout', methods=['GET'])
-# @login_required
+@login_required
 def logout():
     logout_user()
     return redirect(url_for('login_page'))
 
+# @app.route('/deltype/<id>', methods=['GET'])
+#  def delete_type(id):
+#     type = TypeOfIncident.query.get(id)
+#     db.session.delete(type)
+#     db.session.commit()
+#     return "ok"
+
+# @app.route('/delinc/<id>', methods=['GET'])
+#  def delete_inc(id):
+#     inc = Incidents.query.get(id)
+#     db.session.delete(inc)
+#     db.session.commit()
+#     return "ok"
+    
 
 @celery.task(serializer='json')
 def postponed_incident(id):
     incident=Incidents.query.get(id)
     print(incident.status)
-    # incident.postponed_to <= datetime.now() and 
-    if (incident.status == 'Postponed'):
+
+    if (incident.postponed_to <= datetime.now() and  incident.status == 'Postponed'):
         incident.status = 'Active'
         incident.postponed_to = None
         send_notification.delay(incident.id) 
@@ -199,30 +215,19 @@ def send_notification(id):
             send_message_TG(url, body)
         if type=='Email':
             print('Sending to email')
-        time.sleep(10)
-        # time.sleep(time_interval*60)
+        # time.sleep(10)
+        time.sleep(time_interval*60)
         incident = Incidents.query.filter(Incidents.id == incident.id).first()
         db.session.commit()
         if incident.status!='Active':
             print('Hurrah! You.ve done it! Incident status is ', incident.status)
             return json.dumps({"status": True})
             break
-        time.sleep(10)
-        # time.sleep(time_interval*60)
+        # time.sleep(10)
+        time.sleep(time_interval*60)
     return json.dumps({"status": True})
 
 
-def hash_value(labels, starts):
-    hash_str = labels.get("alertname", "") + labels.get("instance", "") + starts
-
-    return str(hash(hash_str))
-
-
-def query_hash_id(hash_id):
-    data = Alerts.query.filter_by(hash_id=hash_id).first()
-    print(data)
-
-    return data
 
 
 @app.route('/receive', methods=['POST', 'GET'])
@@ -235,7 +240,6 @@ def get_data():
         print('[*] Recieved DATA', data)
         for alert in data:
             print('[*] Alert', alert)
-   
             hash_str = hash_value(alert["labels"], alert["startsAt"])
             if hash_str and not query_hash_id(hash_str):
                 print("[*] Forming inc")
@@ -252,8 +256,7 @@ def get_data():
                     if correct_type:
                         incidents[type_[0]].append(alert)
         for incident in incidents.items():
-            create_incident(incident)
-            
+            create_incident(incident)   
         return jsonify(data)
     return "no item"
 
@@ -286,7 +289,7 @@ def create_incident(incident):
     print('[*] ScheduleItems id, day, type id', sch.id, day, incident_obj.type_id)
     url_inc = 'http://localhost:1080/incidents/'+str(incident_obj.id)
     interval = type.interval
-    message = 'Hurry! You have '+incident_obj.TypeOfIncident.typeName+' incidents! Check it here '+url_inc
+    message = 'Hurry up! You have '+incident_obj.TypeOfIncident.typeName+' incidents! Check it here '+url_inc
     notification = NotificationRules(incident_id = incident_obj.id, scheduleItem_id = sch.id, body = message, interval = interval, status = True)
     db.session.add(notification)
     db.session.commit()
@@ -295,21 +298,20 @@ def create_incident(incident):
 
 @app.route('/', methods=['GET'])
 @app.route('/incidents', methods=['GET'])
-# @login_required
-def main_page():
-    incidents=Incidents.query.all()
+ef main_page():
+    incidents=Incidents.query.order_by(db.desc(Incidents.start)).all()
     return render_template('incidents.html', incidents=incidents)
 
 
 @app.route('/incidents/<string:filter>', methods=['GET', 'POST'])
-# @login_required
-def show_incidents(filter):
-    incidents=Incidents.query.all()
+ef show_incidents(filter):
+    # incidents=Incidents.query.all()
+    incidents=Incidents.query.order_by(db.desc(Incidents.start)).all()
+
     return render_template('incidents.html', incidents=incidents, filter=filter)
 
 @app.route('/incidents/<int:id>', methods=['GET', 'POST'])
-# @login_required
-def show_incident(id):
+ef show_incident(id):
     incident = Incidents.query.get(id)
     print('[*] Inside incident ')
    
@@ -355,16 +357,14 @@ def show_incident(id):
 
 
 @app.route('/types_incidents', methods=['GET'])
-# @login_required
-def show_types():
+ef show_types():
     print('[*] Show types')
     on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
     return render_template('types.html', active=on_types, nonactive=off_types)
 
 @app.route('/types_incidents/create', methods=['POST','GET'])
-# @login_required
-def create_type():
+ef create_type():
     if request.method == 'POST':
         name = request.form['typeName']
         description = request.form['description']
@@ -397,8 +397,7 @@ def create_type():
     return render_template('create_type.html', form=form)
 
 @app.route('/types_incidents/<id>/edit', methods=['POST', 'GET'])
-# @login_required
-def edit_type(id):
+ef edit_type(id):
     type = TypeOfIncident.query.get(id)
     if request.method == 'POST':
         form = TypeForm(formdata=request.form, obj=type)
@@ -411,15 +410,13 @@ def edit_type(id):
 
 
 @app.route('/schedule', methods=['GET'])
-# @login_required
-def show_schedule():
+ef show_schedule():
     on_types = TypeOfIncident.query.filter(TypeOfIncident.active == True).all()
     off_types = TypeOfIncident.query.filter(TypeOfIncident.active == False).all()
     return render_template('schedule.html', active=on_types, nonactive=off_types)
 
 @app.route('/schedule/order', methods=['POST'])
-# @login_required
-def order():
+ef order():
     if request.method == 'POST':
         order = request.get_json()
         print('[*] ORDER ',order)
@@ -440,8 +437,7 @@ def order():
 
 
 @app.route('/schedule/<id>/editing', methods=['GET', 'POST'])
-# @login_required
-def edit_scheduleItem(id):
+ef edit_scheduleItem(id):
     users_list = db.session.query(users.c.User_id).filter(users.c.ScheduleItem_id==id).all()
     user_chain=[]
     for _id in users_list:
@@ -453,8 +449,7 @@ def edit_scheduleItem(id):
     return render_template('edit_scheduleItem.html', scheduleItem = scheduleItem, day = week[scheduleItem.dayOfWeek], option_users=option_users, users=user_chain)
 
 @app.route('/schedule/<id_item>/add', methods=['POST'])
-# @login_required
-def add_user_to_chain(id_item):
+ef add_user_to_chain(id_item):
     scheduleItem = ScheduleItems.query.get(id_item)
     print('[*] Adding new user in the chain')
     user = request.form.get('option_user')
@@ -465,8 +460,7 @@ def add_user_to_chain(id_item):
 
 
 @app.route('/schedule/<id_item>/delete/<id_user>', methods=['POST'])
-# @login_required
-def delete_user_from_chain(id_item, id_user):
+ef delete_user_from_chain(id_item, id_user):
     print('[*] Deleting user from ScheduleItem c id= ', id_item)
     scheduleItem = ScheduleItems.query.filter(ScheduleItems.id == id_item).first()
     user=Users.query.get(id_user)
@@ -475,8 +469,7 @@ def delete_user_from_chain(id_item, id_user):
     return redirect(url_for('edit_scheduleItem', id=id_item))
 
 @app.route('/profile', methods=['GET'])
-# @login_required
-def profile():
+ef profile():
     id = 1 
     # user = Users.query.get(current_user.id)
     user = Users.query.get(id)
@@ -486,8 +479,7 @@ def profile():
     return render_template('profile.html', user = user, incidents=incidents, all=all)
 
 @app.route('/profile/<string:query>', methods=['GET','POST'])
-# @login_required
-def profile_info(query):
+ef profile_info(query):
     qur=query
     print(query, qur)
     id = 1 
@@ -510,8 +502,7 @@ def profile_info(query):
     return render_template('profile.html', user = user, query = query, incidents = incidents, all=all)
 
 @app.route('/profile/channels/<id>/deleting', methods=['GET', 'POST'])
-# @login_required
-def delete_user_channel(id):
+ef delete_user_channel(id):
     print(request.method)
     if request.method == 'POST':
         channel = Channels.query.get(id)
